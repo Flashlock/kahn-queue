@@ -35,6 +35,13 @@ class DagTest {
   }
 
   @Test
+  void connect_selfLoop_throwsIllegalGraphException() {
+    var b = Dag.<String>builder();
+    int a = b.add("a");
+    assertThrows(IllegalGraphException.class, () -> b.connect(a, a));
+  }
+
+  @Test
   void chain_edges_updateInDegrees() {
     var b = Dag.<String>builder();
     int a = b.add("a");

@@ -18,6 +18,17 @@ class KahnQueueTest {
   }
 
   @Test
+  void create_cycleWithNoSource_throwsIllegalGraphException() {
+    var b = Dag.<String>builder();
+    int a = b.add("a");
+    int x = b.add("x");
+    int y = b.add("y");
+    b.connect(a, x).connect(x, y).connect(y, a);
+    Dag<String> dag = b.build();
+    assertThrows(IllegalGraphException.class, () -> KahnQueue.create(dag));
+  }
+
+  @Test
   void create_onlyZeroInDegreeNodesAreActive() {
     var b = Dag.<String>builder();
     int a = b.add("a");
@@ -86,6 +97,20 @@ class KahnQueueTest {
 
     assertThrows(IllegalArgumentException.class, () -> q.pop(x));
     assertEquals(Set.of(a), q.activeIds());
+  }
+
+  @Test
+  void pop_invalidId_throwsIllegalGraphException() {
+    KahnQueue<String> q = KahnQueue.create(Dag.<String>builder().add("only").build());
+    assertThrows(IllegalGraphException.class, () -> q.pop(-1));
+    assertThrows(IllegalGraphException.class, () -> q.pop(1));
+  }
+
+  @Test
+  void prune_invalidId_throwsIllegalGraphException() {
+    KahnQueue<String> q = KahnQueue.create(Dag.<String>builder().add("only").build());
+    assertThrows(IllegalGraphException.class, () -> q.prune(-1));
+    assertThrows(IllegalGraphException.class, () -> q.prune(1));
   }
 
   @Test

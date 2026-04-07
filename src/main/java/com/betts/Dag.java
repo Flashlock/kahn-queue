@@ -112,10 +112,17 @@ public class Dag<T> implements Iterable<T> {
       return id;
     }
 
-    /** Adds a directed edge; ids come from {@link #add(Object)}. */
+    /**
+     * Adds a directed edge; ids come from {@link #add(Object)}.
+     *
+     * @throws IllegalGraphException if {@code source} and {@code target} are the same (self-loop)
+     */
     public synchronized Builder<T> connect(int source, int target) {
       validateNode(source, nodes.size());
       validateNode(target, nodes.size());
+      if (source == target) {
+        throw new IllegalGraphException("Self-loop not allowed: " + source);
+      }
 
       BitSet edges = adjacency.get(source);
 
