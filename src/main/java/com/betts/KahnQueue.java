@@ -12,7 +12,7 @@ public class KahnQueue<T> {
 
   private final Dag<T> dag;
   private final AtomicInteger[] remainingDeps;
-  private final ConcurrentHashMap<Integer, T> activeNodes = new ConcurrentHashMap<>();
+  private final Map<Integer, T> activeNodes = new ConcurrentHashMap<>();
 
   private KahnQueue(Dag<T> dag) {
     this.dag = dag;
@@ -51,17 +51,17 @@ public class KahnQueue<T> {
    * @throws IllegalArgumentException if {@code id} is not active
    */
   public List<Integer> pop(int id) {
-    requireValidNodeId(id);
+    Dag.validateNode(id, dag.size());
     T removed = activeNodes.remove(id);
     if (removed == null) throw new IllegalArgumentException("Node " + id + " is not active");
 
     List<Integer> newlyActivated = new ArrayList<>();
-    dag.forEachChild(id, child -> {
-      int remaining = remainingDeps[child].decrementAndGet();
-      if (remaining == 0) {
-        T childData = dag.get(child);
-        activeNodes.put(child, childData);
-        newlyActivated.add(child);
+    dag.targets(id).forEach(targetId -> {
+      int remaining = remainingDeps[targetId].decrementAndGet();
+      if(remaining == 0) {
+        var data = dag.get(targetId);
+        activeNodes.put(targetId, data);
+        newlyActivated.add(targetId);
       }
     });
 
@@ -73,9 +73,9 @@ public class KahnQueue<T> {
    *
    * @throws IllegalGraphException if {@code id} is not a valid node in {@code dag}
    */
-  public List<Integer> prune(int id) {
-    requireValidNodeId(id);
-    List<Integer> removed = new ArrayList<>();
+  public Set<Integer> prune(int id) {
+    Dag.validateNode(id, dag.size());
+    Set<Integer> removed = new HashSet<>();
     Deque<Integer> stack = new ArrayDeque<>();
     stack.push(id);
 
@@ -83,7 +83,7 @@ public class KahnQueue<T> {
       int node = stack.pop();
       if (activeNodes.remove(node) != null || remainingDeps[node].get() >= 0) {
         removed.add(node);
-        dag.forEachChild(node, stack::push);
+        dag.targets(node).forEach(stack::push);
         remainingDeps[node].set(-1); // mark as removed
       }
     }
@@ -94,11 +94,5 @@ public class KahnQueue<T> {
   /** Ids of nodes currently ready to run. */
   public Set<Integer> activeIds() {
     return activeNodes.keySet();
-  }
-
-  private void requireValidNodeId(int id) {
-    if (id < 0 || id >= dag.size()) {
-      throw new IllegalGraphException("Invalid node id: " + id + " (dag size " + dag.size() + ")");
-    }
   }
 }

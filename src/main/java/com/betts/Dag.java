@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.IntConsumer;
+import java.util.stream.IntStream;
 
 /**
  * Immutable directed graph: nodes have integer ids and payloads, edges point from source to target.
@@ -41,22 +41,16 @@ public class Dag<T> implements Iterable<T> {
     return inDegree[id];
   }
 
-  /** Visits each outgoing neighbor of {@code id}. */
-  public void forEachChild(int id, IntConsumer consumer) {
+  /** Returns an IntStream of outgoing neighbor ids (map/stream/forEach). */
+  public IntStream targets(int id) {
     validateNode(id, nodes.length);
-    BitSet bs = adjacency[id];
-    for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i + 1)) {
-      consumer.accept(i);
-    }
+    return adjacency[id].stream();
   }
 
-  /** Visits each incoming neighbor of {@code id}. */
-  public void forEachParent(int id, IntConsumer consumer) {
+  /** Returns an IntStream of incoming neighbor ids (map/stream/forEach). */
+  public IntStream sources(int id) {
     validateNode(id, nodes.length);
-    BitSet bs = reverseAdjacency[id];
-    for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i + 1)) {
-      consumer.accept(i);
-    }
+    return reverseAdjacency[id].stream();
   }
 
   /** Creates a {@link Builder}. */
@@ -64,13 +58,14 @@ public class Dag<T> implements Iterable<T> {
     return new Builder<>();
   }
 
-  private static void validateNode(int id, int size) {
+  public static void validateNode(int id, int size) {
     if (id < 0 || id >= size) {
       throw new IndexOutOfBoundsException("Invalid node id: " + id);
     }
   }
 
-  /** Iterates payloads; for adjacency, use {@link #forEachChild} / {@link #forEachParent}. */
+  /** Iterates payloads; for adjacency, use {@link #targets} / {@link #sources}. */
+  @SuppressWarnings("NullableProblems")
   @Override
   public Iterator<T> iterator() {
     return new Iterator<>() {

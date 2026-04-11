@@ -24,8 +24,8 @@ public class NodeProgressTracker {
 
   public float progress() {
     return (float) tracker.values().stream()
-      .mapToDouble(Float::doubleValue)
-      .average()
-      .orElse(0.0);
+        .mapToDouble(Float::doubleValue)
+        .average()
+        .orElse(0.0);
   }
 }

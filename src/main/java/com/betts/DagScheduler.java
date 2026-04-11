@@ -1,11 +1,8 @@
 package com.betts;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 public class DagScheduler<T> {
   public enum Signal {
@@ -15,23 +12,17 @@ public class DagScheduler<T> {
 
   private final Dag<T> dag;
   private final KahnQueue<T> queue;
-  private final Consumer<Integer> executeNode;
+  private final BiConsumer<Integer, DagScheduler<T>> executeNode;
 
   // Thread-safe state tracking
   private final Set<Integer> completed = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private final Set<Integer> failed = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private final Set<Integer> pruned = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-  private final List<Consumer<DagResult>> onComplete = new ArrayList<>();
-
-  public DagScheduler(Dag<T> dag, Consumer<Integer> executeNode) {
+  public DagScheduler(Dag<T> dag, BiConsumer<Integer, DagScheduler<T>> executeNode) {
     this.dag = dag;
     this.queue = KahnQueue.create(dag);
     this.executeNode = executeNode;
-  }
-
-  public void setOnComplete(Consumer<DagResult> onComplete) {
-    this.onComplete.add(onComplete);
   }
 
   /**
@@ -39,25 +30,25 @@ public class DagScheduler<T> {
    */
   public synchronized void run() {
     if (isFinished()) return;
-    queue.activeIds().forEach(executeNode);
+    queue.activeIds().forEach(id -> executeNode.accept(id, this));
   }
 
   /**
    * The callback method for nodes to report their status.
    */
-  public synchronized void signal(int nodeId, Signal signal) {
-    if (signal == Signal.COMPLETE) {
-      completed.add(nodeId);
-      queue.pop(nodeId).forEach(executeNode);
-    } else {
-      failed.add(nodeId);
-      List<Integer> skipped = queue.prune(nodeId);
-      skipped.remove(nodeId); // Don't count the failed node as pruned
-      pruned.addAll(skipped);
-    }
-
-    if (isFinished()) {
-      onAllNodesProcessed();
+  public void signal(int nodeId, Signal signal) {
+    switch (signal) {
+      case COMPLETE -> {
+        completed.add(nodeId);
+        queue.pop(nodeId).forEach(id -> executeNode.accept(id, this));
+      }
+      case FAIL -> {
+        failed.add(nodeId);
+        var skipped = queue.prune(nodeId);
+        skipped.remove(nodeId); // Don't count the failed node as pruned
+        pruned.addAll(skipped);
+      }
+      default -> throw new IllegalArgumentException("Unsupported Signal: " + signal);
     }
   }
 
@@ -71,10 +62,6 @@ public class DagScheduler<T> {
         Set.copyOf(failed),
         Set.copyOf(pruned)
     );
-  }
-
-  protected void onAllNodesProcessed() {
-    onComplete.forEach(action -> action.accept(getResult()));
   }
 
   public record DagResult(Set<Integer> completed, Set<Integer> failed, Set<Integer> pruned) {}
