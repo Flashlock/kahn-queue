@@ -1,5 +1,6 @@
 package com.betts;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
@@ -7,64 +8,75 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 /**
- * Immutable directed graph: nodes have integer ids and payloads, edges point from source to target.
- * Build with {@link #builder()}
+ * Immutable directed graph of nodes with integer ids and typed payloads. Obtain instances via the
+ * static {@link #builder()} factory; edges go from source to target.
+ *
+ * @param <T> payload at each node
  */
 public class Dag<T> implements Iterable<T> {
 
   private final Node<T>[] nodes;
   private final BitSet[] adjacency;
   private final BitSet[] reverseAdjacency;
-  private final int[] inDegree;
 
-  Dag(Node<T>[] nodes, BitSet[] adjacency, BitSet[] reverseAdjacency, int[] inDegree) {
+  private Dag(Node<T>[] nodes, BitSet[] adjacency, BitSet[] reverseAdjacency) {
     this.nodes = nodes;
     this.adjacency = adjacency;
     this.reverseAdjacency = reverseAdjacency;
-    this.inDegree = inDegree;
   }
 
-  /** Number of nodes in this graph. */
+  /** Number of nodes (ids are {@code 0 .. size()-1}). */
   public int size() {
     return nodes.length;
   }
 
-  /** Payload stored for {@code id}. */
+  /** Payload for node {@code id}. */
   public T get(int id) {
     validateNode(id, nodes.length);
     return nodes[id].data;
   }
 
-  /** Incoming edge count for {@code id}. */
+  /** Count of incoming edges to {@code id}. */
   public int inDegree(int id) {
     validateNode(id, nodes.length);
-    return inDegree[id];
+    return (int) sources(id).count();
   }
 
-  /** Returns an IntStream of outgoing neighbor ids (map/stream/forEach). */
+  /** Count of outgoing edges from {@code id}. */
+  public int outDegree(int id) {
+    validateNode(id, nodes.length);
+    return (int) targets(id).count();
+  }
+
+  /** Successor ids of {@code id}. */
   public IntStream targets(int id) {
     validateNode(id, nodes.length);
     return adjacency[id].stream();
   }
 
-  /** Returns an IntStream of incoming neighbor ids (map/stream/forEach). */
+  /** Predecessor ids of {@code id}. */
   public IntStream sources(int id) {
     validateNode(id, nodes.length);
     return reverseAdjacency[id].stream();
   }
 
-  /** Creates a {@link Builder}. */
+  /** Returns a new mutable {@code Builder}. */
   public static <T> Builder<T> builder() {
     return new Builder<>();
   }
 
-  public static void validateNode(int id, int size) {
+  /**
+   * Ensures {@code id} is valid for a graph of {@code size} nodes.
+   *
+   * @throws IndexOutOfBoundsException if out of range
+   */
+  public static void validateNode(int id, int size) throws IndexOutOfBoundsException {
     if (id < 0 || id >= size) {
       throw new IndexOutOfBoundsException("Invalid node id: " + id);
     }
   }
 
-  /** Iterates payloads; for adjacency, use {@link #targets} / {@link #sources}. */
+  /** Payloads in id order; use {@code targets} / {@code sources} for edge endpoints. */
   @SuppressWarnings("NullableProblems")
   @Override
   public Iterator<T> iterator() {
@@ -84,35 +96,34 @@ public class Dag<T> implements Iterable<T> {
   }
 
   /**
-   * Constructs a {@link Dag}. Safe for concurrent use: {@link #add}, {@link #connect}, and
-   * {@link #build} may be invoked from multiple threads.
+   * Mutable graph builder.
+   *
+   * @param <T> node payload type
    */
   public static final class Builder<T> {
     private final List<Node<T>> nodes = new ArrayList<>();
     private final List<BitSet> adjacency = new ArrayList<>();
     private final List<BitSet> reverseAdjacency = new ArrayList<>();
-    private final List<Integer> inDegree = new ArrayList<>();
 
     private Builder() {}
 
-    /** Adds a node; returns its id for {@link #connect(int, int)}. */
-    public synchronized int add(T data) {
+    /** Adds a node; returns its id for passing to {@code connect}. */
+    public int add(T data) {
       int id = nodes.size();
 
       nodes.add(new Node<>(id, data));
       adjacency.add(new BitSet());
       reverseAdjacency.add(new BitSet());
-      inDegree.add(0);
 
       return id;
     }
 
     /**
-     * Adds a directed edge; ids come from {@link #add(Object)}.
+     * Directed edge {@code source} → {@code target} (ignored if duplicate).
      *
-     * @throws IllegalGraphException if {@code source} and {@code target} are the same (self-loop)
+     * @throws IllegalGraphException if {@code source == target}
      */
-    public synchronized Builder<T> connect(int source, int target) {
+    public Builder<T> connect(int source, int target) throws IllegalGraphException {
       validateNode(source, nodes.size());
       validateNode(target, nodes.size());
       if (source == target) {
@@ -124,15 +135,16 @@ public class Dag<T> implements Iterable<T> {
       if (!edges.get(target)) {
         edges.set(target);
         reverseAdjacency.get(target).set(source);
-        inDegree.set(target, inDegree.get(target) + 1);
       }
 
       return this;
     }
 
-    /** Returns an immutable {@link Dag}. */
+    /** Build the graph. */
     @SuppressWarnings("unchecked")
-    public synchronized Dag<T> build() {
+    public Dag<T> build() throws IllegalGraphException {
+      cycleCheck();
+
       int size = nodes.size();
 
       Node<T>[] nodeArray = nodes.toArray(new Node[0]);
@@ -145,12 +157,42 @@ public class Dag<T> implements Iterable<T> {
         reverseAdjacencyArray[i] = (BitSet) reverseAdjacencyArray[i].clone();
       }
 
-      int[] inDegreeArray = new int[size];
-      for (int i = 0; i < size; i++) {
-        inDegreeArray[i] = inDegree.get(i);
+      return new Dag<>(nodeArray, adjacencyArray, reverseAdjacencyArray);
+    }
+
+    private void cycleCheck() throws IllegalGraphException {
+      int n = nodes.size();
+      if (n == 0) {
+        return;
       }
 
-      return new Dag<>(nodeArray, adjacencyArray, reverseAdjacencyArray, inDegreeArray);
+      int[] inDegree = new int[n];
+      for (int i = 0; i < n; i++) {
+        inDegree[i] = reverseAdjacency.get(i).cardinality();
+      }
+
+      ArrayDeque<Integer> ready = new ArrayDeque<>();
+      for (int i = 0; i < n; i++) {
+        if (inDegree[i] == 0) {
+          ready.addLast(i);
+        }
+      }
+
+      int processed = 0;
+      while (!ready.isEmpty()) {
+        int u = ready.removeFirst();
+        processed++;
+        BitSet outs = adjacency.get(u);
+        for (int v = outs.nextSetBit(0); v >= 0; v = outs.nextSetBit(v + 1)) {
+          if (--inDegree[v] == 0) {
+            ready.addLast(v);
+          }
+        }
+      }
+
+      if (processed != n) {
+        throw new IllegalGraphException("Graph contains a directed cycle");
+      }
     }
   }
 
