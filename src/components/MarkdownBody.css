@@ -1,0 +1,92 @@
+.md-root {
+  max-width: 52rem;
+  line-height: 1.65;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+.md-root h1 {
+  font-size: 1.75rem;
+  margin: 0 0 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f1f5f9;
+}
+
+.md-root h2 {
+  font-size: 1.25rem;
+  margin: 2rem 0 0.65rem;
+  font-weight: 650;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  padding-bottom: 0.35rem;
+}
+
+.md-root h3 {
+  font-size: 1.05rem;
+  margin: 1.35rem 0 0.5rem;
+  color: #e2e8f0;
+}
+
+.md-root p {
+  margin: 0.65rem 0;
+}
+
+.md-root a {
+  color: #38bdf8;
+}
+
+.md-root code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.86em;
+  padding: 0.12em 0.4em;
+  border-radius: 0.35rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.md-root pre {
+  padding: 1rem 1.1rem;
+  border-radius: 0.65rem;
+  overflow: auto;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  margin: 1rem 0;
+}
+
+.md-root pre code {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.82rem;
+}
+
+.md-root ul,
+.md-root ol {
+  margin: 0.5rem 0 0.5rem 1.25rem;
+}
+
+.md-root table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.88rem;
+}
+
+.md-root th,
+.md-root td {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+}
+
+.md-root th {
+  background: rgba(30, 41, 59, 0.6);
+}
+
+.md-root blockquote {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid rgba(56, 189, 248, 0.45);
+  color: #94a3b8;
+}

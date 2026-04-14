@@ -1,0 +1,63 @@
+.docs-page {
+  max-width: 56rem;
+}
+
+.docs-header {
+  margin-bottom: 1.75rem;
+}
+
+.docs-eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  margin: 0 0 0.35rem;
+}
+
+.docs-header h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.docs-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.docs-meta code {
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+  border-radius: 0.3rem;
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.docs-status {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.docs-error {
+  padding: 1rem 1.1rem;
+  border-radius: 0.65rem;
+  background: rgba(127, 29, 29, 0.25);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.docs-hint {
+  margin-top: 0.65rem;
+  font-size: 0.85rem;
+  color: #fca5a5;
+}
+
+.docs-hint code {
+  font-size: 0.88em;
+  padding: 0.08em 0.3em;
+  border-radius: 0.25rem;
+  background: rgba(15, 23, 42, 0.6);
+}

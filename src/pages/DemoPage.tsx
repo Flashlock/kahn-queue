@@ -1,0 +1,212 @@
+import { useCallback, useRef, useState } from "react";
+import {
+  Background,
+  BackgroundVariant,
+  Handle,
+  Panel,
+  Position,
+  ReactFlow,
+  ReactFlowProvider,
+  addEdge,
+  useEdgesState,
+  useNodesState,
+  type Connection,
+  type Edge,
+  type Node,
+  type NodeProps,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { buildDagFromFlow } from "../demo/buildDagFromFlow";
+import { runDagInWaves } from "../demo/dagRunner";
+import "./DemoPage.css";
+
+type DagData = { label: string; status: "idle" | "running" | "done" };
+
+/** Custom node: data payload + literal `"dag"` type tag (see NodeProps in @xyflow/react). */
+type DagFlowNode = Node<DagData, "dag">;
+
+function DagNode(props: NodeProps<DagFlowNode>) {
+  const { data } = props;
+  return (
+    <>
+      <Handle className="dag-handle" type="target" position={Position.Top} />
+      <div className={`dag-node dag-node--${data.status}`}>
+        <span className="dag-node-label">{data.label}</span>
+      </div>
+      <Handle className="dag-handle" type="source" position={Position.Bottom} />
+    </>
+  );
+}
+
+const nodeTypes = { dag: DagNode };
+
+const initialNodes: DagFlowNode[] = [
+  { id: "n1", type: "dag", position: { x: 140, y: 20 }, data: { label: "lint", status: "idle" } },
+  { id: "n2", type: "dag", position: { x: 140, y: 140 }, data: { label: "compile", status: "idle" } },
+  { id: "n3", type: "dag", position: { x: 140, y: 260 }, data: { label: "test", status: "idle" } },
+];
+
+const initialEdges: Edge[] = [
+  { id: "e1", source: "n1", target: "n2" },
+  { id: "e2", source: "n2", target: "n3" },
+];
+
+function setStatuses(nodes: DagFlowNode[], rfIds: string[], status: DagData["status"]): DagFlowNode[] {
+  const set = new Set(rfIds);
+  return nodes.map((n) => (set.has(n.id) ? { ...n, data: { ...n.data, status } } : n));
+}
+
+function allIdle(nodes: DagFlowNode[]): DagFlowNode[] {
+  return nodes.map((n) => ({ ...n, data: { ...n.data, status: "idle" } }));
+}
+
+function DemoPageInner() {
+  const [nodes, setNodes, onNodesChange] = useNodesState<DagFlowNode>(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [log, setLog] = useState<string[]>([]);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const idRef = useRef(4);
+
+  const onConnect = useCallback(
+    (c: Connection) =>
+      setEdges((eds) =>
+        addEdge({ ...c, id: `e-${c.source}-${c.target}-${Date.now()}`, animated: true }, eds),
+      ),
+    [setEdges],
+  );
+
+  const addNode = useCallback(() => {
+    const n = idRef.current++;
+    const y = 40 + (n - 1) * 56;
+    setNodes((ns) => [
+      ...ns,
+      {
+        id: `n${n}`,
+        type: "dag",
+        position: { x: 40 + (n % 3) * 120, y },
+        data: { label: `step ${n}`, status: "idle" },
+      },
+    ]);
+  }, [setNodes]);
+
+  const clearGraph = useCallback(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setLog([]);
+    setError(null);
+    idRef.current = 4;
+  }, [setNodes, setEdges]);
+
+  const run = useCallback(async () => {
+    setError(null);
+    setLog([]);
+    if (nodes.length === 0) {
+      setError("Add at least one node.");
+      return;
+    }
+
+    let built: ReturnType<typeof buildDagFromFlow>;
+    try {
+      built = buildDagFromFlow(nodes, edges);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      return;
+    }
+
+    if (built.dag.size === 0) {
+      setError("Graph is empty.");
+      return;
+    }
+
+    setRunning(true);
+    setNodes((ns) => allIdle(ns));
+
+    let wave = 0;
+    try {
+      await runDagInWaves(built.dag, async (ids) => {
+        wave++;
+        const rfIds = ids.map((i) => built.indexToRfId[i]);
+        const labels = ids.map((i) => built.dag.get(i)).join(", ");
+        setLog((prev) => [...prev, `Wave ${wave}: ${labels}`]);
+        setNodes((ns) => setStatuses(ns, rfIds, "running"));
+        await new Promise((r) => setTimeout(r, 720));
+        setNodes((ns) => setStatuses(ns, rfIds, "done"));
+        await new Promise((r) => setTimeout(r, 180));
+      });
+      setLog((prev) => [...prev, "Done — all nodes finished in Kahn order."]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRunning(false);
+    }
+  }, [nodes, edges, setNodes]);
+
+  return (
+    <div className="demo-page">
+      <header className="demo-header">
+        <p className="demo-eyebrow">Interactive</p>
+        <h1>Scheduler playground</h1>
+        <p className="demo-lead">
+          Drag nodes, connect edges (direction matters), then run. Each <strong>wave</strong> is the set of nodes with no
+          remaining predecessors—mimicking a Kahn ready queue. The TypeScript <code>Dag</code> enforces acyclic graphs on
+          build.
+        </p>
+      </header>
+
+      <div className="demo-shell">
+        <div className="demo-flow-wrap">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            fitView
+            minZoom={0.4}
+            maxZoom={1.5}
+            defaultEdgeOptions={{ animated: true }}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="rgba(148,163,184,0.25)" />
+            <Panel position="top-left" className="demo-panel">
+              <button type="button" className="demo-btn" onClick={addNode} disabled={running}>
+                + Node
+              </button>
+              <button type="button" className="demo-btn" onClick={clearGraph} disabled={running}>
+                Reset sample
+              </button>
+              <button type="button" className="demo-btn demo-btn-primary" onClick={run} disabled={running}>
+                {running ? "Running…" : "Run scheduler"}
+              </button>
+            </Panel>
+          </ReactFlow>
+        </div>
+
+        <aside className="demo-side">
+          <h2>Wave log</h2>
+          <p className="demo-side-hint">Parallel-ready nodes share a wave; the next wave starts when all current work is done.</p>
+          <ul className="demo-log">
+            {log.map((line, i) => (
+              <li key={`${i}-${line}`}>{line}</li>
+            ))}
+          </ul>
+          {error && (
+            <div className="demo-err" role="alert">
+              {error}
+            </div>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+export function DemoPage() {
+  return (
+    <ReactFlowProvider>
+      <DemoPageInner />
+    </ReactFlowProvider>
+  );
+}
