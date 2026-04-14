@@ -1,40 +1,21 @@
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
-.kotlin
+# Root ignores should be small and language-agnostic.
+# Put language/tooling-specific ignores in e.g. java/.gitignore, typescript/.gitignore.
 
-### IntelliJ IDEA ###
+### OS / editor ###
+.DS_Store
+Thumbs.db
+Desktop.ini
+
 .idea/
-*.iws
 *.iml
-*.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
 .vscode/
 
-### Mac OS ###
-.DS_Store
+### Logs / temp ###
+README.pdf
+*.log
+*.tmp
+*.swp
+
+### Secrets (local only) ###
+.env
+.env.*.local

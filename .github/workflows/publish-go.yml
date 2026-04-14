@@ -1,0 +1,40 @@
+# Go modules are consumed from the VCS tag via proxy.golang.org (there is no separate
+# "upload" like npm/PyPI). This workflow verifies the module on each merge; release by
+# pushing a semver tag for the module path (e.g. go/v1.0.0 for a submodule under go/).
+
+name: Publish Go (module verify)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "go/**"
+      - ".github/workflows/publish-go.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: publish-go-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+
+      - name: Test and build
+        working-directory: go
+        run: |
+          go test ./...
+          go build -v ./...
+
+      - name: Module path
+        working-directory: go
+        run: |
+          echo "Module: $(go list -m)"
+          echo "To release: git tag go/vX.Y.Z (or repo root vX.Y.Z per your layout) and git push --tags; proxy.golang.org will index the tag."

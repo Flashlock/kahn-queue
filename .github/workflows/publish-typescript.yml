@@ -1,0 +1,44 @@
+# Publish the TypeScript package to npm when `typescript/` changes on main.
+#
+# Repository secrets (Settings → Secrets → Actions):
+#   NPM_TOKEN — npm automation token with permission to publish this package.
+
+name: Publish TypeScript (npm)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "typescript/**"
+      - ".github/workflows/publish-typescript.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: publish-typescript-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: typescript
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm ci
+
+      - run: npm test
+
+      - run: npm run build
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public

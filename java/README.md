@@ -1,0 +1,98 @@
+# kahn-queue (Java)
+
+## Getting started
+
+- **JDK:** **21** (LTS), declared in the toolchain in `build.gradle.kts`.
+- **Gradle:** **9.2.0** via the wrapper in `gradle/wrapper/gradle-wrapper.properties`.
+- **Tests:** From the repo root, `make test-java`, or `cd java` and `./gradlew test`.
+- **Build JARs:** `make build-java` or `./gradlew assemble` (main, sources, Javadoc).
+
+## Pieces
+
+| Piece | Role |
+|--------|------|
+| `Dag<T>` | Immutable DAG: build with `Dag.builder()`, add nodes and `connect(source, target)`. |
+| `DagScheduler<T>` | Drives execution: `run()`, then `signalComplete` / `signalFailed`; `getResult()` returns `DagResult` (completed / failed / pruned ids). |
+| `KahnQueue` | Pluggable backing queue: **`DefaultKahnQueue`** (single-threaded updates) or **`ConcurrentKahnQueue`** (concurrent `pop` / `prune`). |
+| `IllegalGraphException` | Thrown for invalid graphs (e.g. self-loop or cycle at `build()`). |
+| `NodeProgressTracker` | Optional per-node progress in `[0, 1]` for UI; not required for scheduling. |
+
+## Examples
+
+### Single-threaded (Temporal-style)
+
+Same process runs the workflow logic: you kick the scheduler once, then block or await until the DAG run finishes—similar to a Temporal workflow awaiting activity futures.
+
+```java
+var builder = Dag.<String>builder();
+int lint = builder.add("lint");
+int compile = builder.add("compile");
+int test = builder.add("test");
+
+builder
+  .connect(lint, compile)
+  .connect(compile, test);
+
+Dag<String> dag = builder.build();
+
+var scheduler = new DagScheduler<>(dag, (id, sched) -> {
+  try {
+    runStep(dag.get(id)); // e.g. Async.procedure(() -> run());
+    sched.signalComplete(id);
+  } catch (Throwable t) {
+    sched.signalFailed(id);
+  }
+});
+scheduler.run();
+
+// Workflow.await(scheduler::isFinished);
+DagScheduler.DagResult result = scheduler.getResult();
+```
+
+The two-arg `DagScheduler` constructor uses a single-threaded `DefaultKahnQueue` under the hood.
+
+### Concurrent (thread pool)
+
+Use the `ConcurrentKahnQueue`-backed scheduler when work runs concurrently. Ensure any shared result-tracking collections you provide are safe to update from multiple threads.
+
+```java
+import KahnQueue.io.github.flashlock.ConcurrentKahnQueue;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+ExecutorService pool = Executors.newFixedThreadPool(4);
+try{
+var builder = Dag.<String>builder();
+int lint = builder.add("lint");
+int compile = builder.add("compile");
+int test = builder.add("test");
+
+builder
+  .connect(lint, compile)
+  .connect(compile, test);
+
+Dag<String> dag = builder.build();
+
+var scheduler = new DagScheduler<>(
+    dag,
+    (id, sched) -> pool.submit(() -> {
+      try {
+        runStep(dag.get(id));
+        sched.signalComplete(id);
+      } catch (Throwable t) {
+        sched.signalFailed(id);
+      }
+    }),
+    () -> new ConcurrentKahnQueue(dag),
+    ConcurrentHashMap::newKeySet
+  );
+
+  scheduler.run();
+
+DagScheduler.DagResult result = scheduler.getResult();
+}finally{
+    pool.shutdown();
+}
+```

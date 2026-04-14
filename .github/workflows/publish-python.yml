@@ -1,0 +1,51 @@
+# Publish the Python package to PyPI when `python/` changes on main.
+#
+# Repository secrets:
+#   PYPI_API_TOKEN — PyPI API token (password; use username __token__ below).
+
+name: Publish Python (PyPI)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "python/**"
+      - ".github/workflows/publish-python.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: publish-python-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install --upgrade pip build twine
+
+      - name: Run tests
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -r requirements-dev.txt
+          python -m pytest
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Upload to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*

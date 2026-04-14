@@ -1,0 +1,14 @@
+### Gradle ###
+.gradle/
+build/
+
+### JVM ###
+*.class
+hs_err_pid*
+
+### IDE (Java) ###
+.classpath
+.project
+.settings/
+.factorypath
+
