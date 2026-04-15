@@ -1,5 +1,8 @@
 # Root ignores should be small and language-agnostic.
 # Put language/tooling-specific ignores in e.g. java/.gitignore, typescript/.gitignore.
+.vite/
+dist/
+node_modules/
 
 ### OS / editor ###
 .DS_Store
