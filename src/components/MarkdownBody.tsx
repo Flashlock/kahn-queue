@@ -36,6 +36,13 @@ const LANG_ALIASES: Record<string, string> = {
 };
 
 const mdComponents: Components = {
+  table({ children, ...props }) {
+    return (
+      <div className="md-table-wrap">
+        <table {...props}>{children}</table>
+      </div>
+    );
+  },
   pre({ children }) {
     return <>{children}</>;
   },

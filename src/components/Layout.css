@@ -2,11 +2,13 @@
   display: grid;
   grid-template-columns: 16rem minmax(0, 1fr);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Demo: lock to one viewport height so the app shell does not scroll */
 .shell--demo {
   height: 100vh;
+  height: 100dvh;
   min-height: 0;
   overflow: hidden;
 }
@@ -14,7 +16,9 @@
 /* Home: same viewport lock — no page scrollbar */
 .shell--home {
   height: 100vh;
+  height: 100dvh;
   max-height: 100vh;
+  max-height: 100dvh;
   min-height: 0;
   overflow: hidden;
   grid-template-rows: minmax(0, 1fr);
@@ -35,6 +39,7 @@
   top: 0;
   align-self: start;
   height: 100vh;
+  height: 100dvh;
 }
 
 .sidebar-toggle {
@@ -277,6 +282,7 @@
     bottom: 0;
     width: min(18rem, 88vw);
     height: 100vh;
+    height: 100dvh;
     border-right: 1px solid rgba(148, 163, 184, 0.15);
     border-bottom: none;
     transform: translateX(-110%);
