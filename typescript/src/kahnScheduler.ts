@@ -50,14 +50,6 @@ export class KahnScheduler<T> {
     return new KahnScheduler(dag, executeNode);
   }
 
-  /** Convenience: same as {@link KahnScheduler.create}. */
-  static fromDag<T>(
-    dag: Dag<T>,
-    executeNode: (id: number, sched: KahnScheduler<T>) => void,
-  ): KahnScheduler<T> {
-    return new KahnScheduler(dag, executeNode);
-  }
-
   /** Invokes `executeNode` for each id the queue reports ready now; no-op if the run is already finished. */
   run(): void {
     if (this.isFinished()) return;

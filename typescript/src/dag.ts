@@ -4,7 +4,7 @@ type Node<T> = { id: number; data: T };
 
 /**
  * Immutable directed graph of nodes with integer ids and typed payloads. Obtain instances via the
- * static {@link Dag.builder} factory; edges go from source to target.
+ * static `Dag.builder()` factory; edges go from source to target.
  *
  * @typeParam T payload at each node
  */

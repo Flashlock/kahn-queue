@@ -1,6 +1,6 @@
 /**
- * Holds one state; {@link StateMachine.transition} only succeeds when the move is allowed by the map
- * passed to the constructor.
+ * Holds one state; `transition()` only succeeds when the move is allowed by the map passed to the
+ * constructor.
  *
  * @typeParam S state string union
  */

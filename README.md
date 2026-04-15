@@ -8,11 +8,10 @@
 ## Quick start
 
 ```bash
-make help        # build / test / clean / deploy
+make help        # build / test / clean / release helpers
 make test        # run all language test suites
 make build       # build all
 make clean       # clean all
-make deploy      # deploy/publish all (where configured; see make help)
 ```
 
 ## What is a KahnQueue?

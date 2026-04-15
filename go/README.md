@@ -45,3 +45,44 @@ sched.Run()
 res := sched.Result()
 _ = res
 ```
+
+## Manual KahnQueue
+
+```go
+import (
+	"github.com/Flashlock/kahn-queue/go/dag"
+	"github.com/Flashlock/kahn-queue/go/kahnqueue"
+)
+
+b := dag.NewBuilder[string]()
+lint := b.Add("lint")
+compile := b.Add("compile")
+test := b.Add("test")
+_ = b.Connect(lint, compile)
+_ = b.Connect(compile, test)
+
+d, err := b.Build()
+if err != nil {
+	panic(err)
+}
+
+q := kahnqueue.NewDefault(d)
+
+ready := append([]int(nil), q.ReadyIDs()...)
+
+for len(ready) > 0 {
+	id := ready[0]
+	ready = ready[1:]
+
+	// do work for `id` (e.g. runStep(d.Get(id)))
+
+	promoted, err := q.Pop(id)
+	if err != nil {
+		panic(err)
+	}
+	ready = append(ready, promoted...)
+
+	// If a node fails, you can prune it (and its descendants):
+	// _, err = q.Prune(id)
+}
+```

@@ -11,7 +11,7 @@ describe("KahnScheduler", () => {
     b.connect(0, join).connect(1, join);
     const dag = b.build();
     let calls = 0;
-    const sched = KahnScheduler.fromDag(dag, () => {
+    const sched = KahnScheduler.create(dag, () => {
       calls++;
     });
     sched.run();
@@ -21,7 +21,7 @@ describe("KahnScheduler", () => {
     const only = one.add("x");
     const dagOne = one.build();
     let calls2 = 0;
-    const finished = KahnScheduler.fromDag(dagOne, () => {
+    const finished = KahnScheduler.create(dagOne, () => {
       calls2++;
     });
     finished.signalFailed(only);
@@ -38,7 +38,7 @@ describe("KahnScheduler", () => {
     const dag = b.build();
 
     const seen: Array<number> = [];
-    const sched = KahnScheduler.fromDag(dag, (id, s) => {
+    const sched = KahnScheduler.create(dag, (id, s) => {
       seen.push(id);
       // In this TypeScript implementation, the queue expects nodes to be ACTIVE before pop().
       // The scheduler only exposes READY ids, so calling signalComplete from the callback will
@@ -85,7 +85,7 @@ describe("KahnScheduler", () => {
     const b = Dag.builder<string>();
     const only = b.add("x");
     const dag = b.build();
-    const sched = KahnScheduler.fromDag(dag, () => {});
+    const sched = KahnScheduler.create(dag, () => {});
     expect(() => sched.signalComplete(only)).toThrow();
     expect(() => sched.signalComplete(only)).not.toThrow();
     expect(sched.getResult().completed).toEqual(new Set([only]));

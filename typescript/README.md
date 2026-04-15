@@ -31,7 +31,7 @@ const test = b.add("test");
 b.connect(lint, compile).connect(compile, test);
 const dag = b.build();
 
-const sched = KahnScheduler.fromDag(dag, (id, s) => {
+const sched = KahnScheduler.create(dag, (id, s) => {
   try {
     runStep(dag.get(id));
     s.signalComplete(id);
@@ -43,4 +43,32 @@ sched.run();
 const result = sched.getResult();
 ```
 
-`KahnScheduler.fromDag` / `create` wires a `KahnQueue` for you.
+## Manual KahnQueue
+
+```ts
+import { Dag, KahnQueue } from "./dist/index.js";
+
+const b = Dag.builder<string>();
+const lint = b.add("lint");
+const compile = b.add("compile");
+const test = b.add("test");
+b.connect(lint, compile).connect(compile, test);
+const dag = b.build();
+
+const q = new KahnQueue(dag);
+
+let ready = [...q.readyIds()];
+
+while (ready.length > 0) {
+  const id = ready.shift()!;
+
+  // do work for `id` (e.g. runStep(dag.get(id)))
+
+  const promoted = q.pop(id);
+
+  ready.push(...promoted);
+
+  // If a node fails, you can prune it (and its descendants):
+  // q.prune(id);
+}
+```

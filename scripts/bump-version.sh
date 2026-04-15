@@ -4,21 +4,29 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/bump-version.sh <part> <language>
+  scripts/bump-version.sh <part> <language> [<language> ...]
 
 Where:
-  <part>     one of: patch | minor | major
-  <language> one of: java | python | typescript | go
+  <part>      one of: patch | minor | major
+  <language>  one or more of: java | python | typescript | go
 
 Behavior:
-  - Updates the language's version metadata (where applicable)
-  - Creates a git commit: "chore(release): <language> vX.Y.Z"
-  - Creates an annotated git tag: "<language>/vX.Y.Z"
+  - Reads semver from each language’s metadata file (see below).
+  - Applies one semver step: patch +0.0.1, minor, or major.
+  - Writes the new version back, stages, and makes one commit (all languages together).
+  - Tags that commit: e.g. 1.0.1 -> 1.0.2 and tag typescript/v1.0.2.
+
+  Metadata: typescript/package.json, python/pyproject.toml, java/build.gradle.kts, go/VERSION.
+
+Examples:
+  scripts/bump-version.sh patch typescript python
+  scripts/bump-version.sh minor java typescript python
 
 Notes:
-  - Requires a POSIX shell environment (Git Bash / WSL).
-  - Refuses to run if the git working tree is dirty.
-  - Does not push (you push the tag yourself).
+  - Requires a POSIX shell (Git Bash / WSL).
+  - Refuses to run if the git working tree is dirty (unless only testing — still require clean).
+  - Refuses duplicate languages in one invocation.
+  - Does not push (you push commits + tags yourself).
 EOF
 }
 
@@ -46,42 +54,26 @@ semver_bump() {
   echo "${major}.${minor}.${patch}"
 }
 
-latest_tag_version_or_default() {
-  local lang="$1"
-  local pattern="${lang}/v*"
-  local latest
-  latest="$(git tag --list "${pattern}" | sed -E "s#^${lang}/v##" | sort -V | tail -n 1 || true)"
-  if [ -z "$latest" ]; then
-    echo "1.0.0"
-  else
-    echo "$latest"
-  fi
-}
-
 read_file_version() {
   local lang="$1"
   case "$lang" in
     typescript)
-      # "version": "X.Y.Z"
       grep -E '"version"[[:space:]]*:[[:space:]]*"[0-9]+\.[0-9]+\.[0-9]+"' typescript/package.json \
         | head -n 1 \
         | sed -E 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/'
       ;;
     python)
-      # version = "X.Y.Z"
       grep -E '^version[[:space:]]*=[[:space:]]*"[0-9]+\.[0-9]+\.[0-9]+"' python/pyproject.toml \
         | head -n 1 \
         | sed -E 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/'
       ;;
     java)
-      # version = (...) ?: "X.Y.Z"
       grep -E '^[[:space:]]*version[[:space:]]*=' java/build.gradle.kts \
         | head -n 1 \
         | sed -E 's/.*\?:[[:space:]]*"([^"]+)".*/\1/'
       ;;
     go)
-      # Go has no in-file version; release via tags only.
-      latest_tag_version_or_default go
+      head -n 1 go/VERSION | tr -d '\r' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g'
       ;;
     *)
       die "unknown language: $lang"
@@ -93,7 +85,6 @@ write_file_version() {
   local lang="$1" next="$2"
   case "$lang" in
     typescript)
-      # Replace only the first match of the version field.
       sed -i.bak -E "0,/\"version\"[[:space:]]*:[[:space:]]*\"[0-9]+\.[0-9]+\.[0-9]+\"/s//\"version\": \"${next}\"/" typescript/package.json
       rm -f typescript/package.json.bak
       ;;
@@ -102,12 +93,11 @@ write_file_version() {
       rm -f python/pyproject.toml.bak
       ;;
     java)
-      # Update the default version string (the value after ?: "...").
       sed -i.bak -E "s/(^[[:space:]]*version[[:space:]]*=[^?]*\\?:[[:space:]]*\")([0-9]+\.[0-9]+\.[0-9]+)(\".*$)/\\1${next}\\3/" java/build.gradle.kts
       rm -f java/build.gradle.kts.bak
       ;;
     go)
-      # No metadata to update.
+      printf '%s\n' "${next}" > go/VERSION
       ;;
     *)
       die "unknown language: $lang"
@@ -115,63 +105,89 @@ write_file_version() {
   esac
 }
 
+git_add_version_files_for_lang() {
+  local lang="$1"
+  case "$lang" in
+    typescript) git add typescript/package.json ;;
+    python) git add python/pyproject.toml ;;
+    java) git add java/build.gradle.kts ;;
+    go) git add go/VERSION ;;
+  esac
+}
+
+validate_lang() {
+  case "$1" in
+    java|python|typescript|go) ;;
+    *) die "invalid language: $1 (expected java, python, typescript, or go)" ;;
+  esac
+}
+
 main() {
   if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then usage; exit 0; fi
-  local part="${1:-}" lang="${2:-}"
-  [ -n "$part" ] && [ -n "$lang" ] || { usage; exit 1; }
+  local part="${1:-}"
+  shift || true
+  [ -n "$part" ] || { usage; exit 1; }
 
-  case "$part" in patch|minor|major) ;; *) die "invalid part: $part" ;; esac
-  case "$lang" in java|python|typescript|go) ;; *) die "invalid language: $lang" ;; esac
+  case "$part" in patch|minor|major) ;; *) die "invalid part: $part (expected patch, minor, or major)" ;; esac
+  [ "$#" -ge 1 ] || die "at least one language required"
+
+  local -a langs=()
+  local seen=""
+  local a
+  for a in "$@"; do
+    validate_lang "$a"
+    case " ${seen} " in
+      *" ${a} "*) die "duplicate language: $a" ;;
+    esac
+    seen="${seen} ${a}"
+    langs+=("$a")
+  done
 
   require_clean_git
 
-  local cur next tag
+  local -a curv=()
+  local -a nextv=()
+  local lang cur next
 
-  if [ "$lang" = "go" ]; then
-    cur="$(latest_tag_version_or_default go)"
-  else
+  for lang in "${langs[@]}"; do
     cur="$(read_file_version "$lang")"
     [ -n "$cur" ] || die "could not read current version for $lang"
-  fi
 
-  # Ensure baseline is at least 1.0.0 for older packages.
-  # If current is < 1.0.0, start from 1.0.0 and then bump the requested part.
-  # (Example: part=patch => 1.0.1)
-  local baseline="$cur"
-  if printf '%s\n%s\n' "1.0.0" "$cur" | sort -V -C; then
-    baseline="$cur"
-  else
-    baseline="1.0.0"
-  fi
+    next="$(semver_bump "$cur" "$part")"
 
-  next="$(semver_bump "$baseline" "$part")"
-  tag="${lang}/v${next}"
+    curv+=("$cur")
+    nextv+=("$next")
+  done
 
-  # Avoid re-tagging an existing version.
-  if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
-    die "tag already exists: ${tag}"
-  fi
+  local i
+  for i in "${!langs[@]}"; do
+    write_file_version "${langs[$i]}" "${nextv[$i]}"
+  done
 
-  if [ "$lang" != "go" ]; then
-    write_file_version "$lang" "$next"
-    git add -A
-    git commit -m "chore(release): ${lang} v${next}"
-  else
-    # For go-only bumps, we still create a lightweight release commit for traceability,
-    # without changing files.
-    git commit --allow-empty -m "chore(release): go v${next}"
-  fi
+  for lang in "${langs[@]}"; do
+    git_add_version_files_for_lang "$lang"
+  done
 
-  git tag -a "${tag}" -m "${tag}"
+  local body=""
+  for i in "${!langs[@]}"; do
+    body="${body}- ${langs[$i]} ${curv[$i]} -> ${nextv[$i]}"$'\n'
+  done
 
-  echo "Created:"
-  echo "  version: ${cur} -> ${next}"
-  echo "  tag: ${tag}"
+  git commit -m "chore(release): bump versions" -m "${body%$'\n'}"
+
+  for i in "${!langs[@]}"; do
+    tag="${langs[$i]}/v${nextv[$i]}"
+    git tag -a "${tag}" -m "${tag}"
+  done
+
+  echo "Committed and tagged:"
+  for i in "${!langs[@]}"; do
+    echo "  ${langs[$i]}/v${nextv[$i]}  (${curv[$i]} -> ${nextv[$i]})"
+  done
   echo ""
   echo "Next:"
   echo "  git push origin HEAD"
-  echo "  git push origin ${tag}"
+  echo "  git push origin $(for i in "${!langs[@]}"; do echo -n "${langs[$i]}/v${nextv[$i]} "; done)"
 }
 
 main "$@"
-

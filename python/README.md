@@ -73,3 +73,32 @@ result = sched.get_result()
 # result.completed, result.failed, result.pruned — frozensets of ids
 done = sched.is_finished
 ```
+
+### Manual KahnQueue
+
+```python
+from dag import Dag
+from kahnQueue.default_kahn_queue import DefaultKahnQueue
+
+b = Dag.builder()
+lint = b.add("lint")
+compile = b.add("compile")
+test = b.add("test")
+b.connect(lint, compile).connect(compile, test)
+dag = b.build()
+
+q = DefaultKahnQueue(dag)
+
+ready = list(q.ready_ids())
+
+while ready:
+    id_ = ready.pop(0)
+
+    # do work for `id_` (e.g. run_step(dag[id_]))
+
+    promoted = q.pop(id_)
+    ready.extend(promoted)
+
+    # If a node fails, you can prune it (and its descendants):
+    # q.prune(id_)
+```

@@ -96,3 +96,38 @@ KahnScheduler.DagResult result = scheduler.getResult();
     pool.shutdown();
 }
 ```
+
+### Manual KahnQueue
+
+```java
+import io.github.flashlock.Dag;
+import io.github.flashlock.KahnQueue.DefaultKahnQueue;
+
+import java.util.ArrayDeque;
+
+var builder = Dag.<String>builder();
+int lint = builder.add("lint");
+int compile = builder.add("compile");
+int test = builder.add("test");
+
+builder
+  .connect(lint, compile)
+  .connect(compile, test);
+
+Dag<String> dag = builder.build();
+
+var q = new DefaultKahnQueue(dag);
+
+var ready = new ArrayDeque<>(q.readyIds());
+
+while (!ready.isEmpty()) {
+  int id = ready.removeFirst();
+
+  // do work for `id` (e.g. runStep(dag.get(id)))
+
+  q.pop(id).forEach(ready::add);
+
+  // If a node fails, you can prune it (and its descendants):
+  // q.prune(id);
+}
+```
