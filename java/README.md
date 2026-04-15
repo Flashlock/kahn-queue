@@ -1,5 +1,8 @@
 # kahn-queue (Java)
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.flashlock/kahn-queue)](https://central.sonatype.com/artifact/io.github.flashlock/kahn-queue)
+[![mvnrepository](https://img.shields.io/badge/mvnrepository-kahn--queue-437291?logo=apachemaven)](https://mvnrepository.com/artifact/io.github.flashlock/kahn-queue)
+
 ## Getting started
 
 - **JDK:** **21** (LTS), declared in the toolchain in `build.gradle.kts`.

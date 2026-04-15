@@ -1,5 +1,7 @@
 # kahn-queue (Python)
 
+[![PyPI](https://img.shields.io/pypi/v/kahn-queue?label=PyPI)](https://pypi.org/project/kahn-queue/)
+
 ## Getting started
 
 - **Python:** **3.10+** recommended (venv + `requirements-dev.txt`; no version pinned in-repo).

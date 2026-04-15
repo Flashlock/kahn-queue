@@ -1,4 +1,6 @@
-# kahn-queue (Go)
+# kahn-queue (Go *alpha*)
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/Flashlock/kahn-queue/go.svg)](https://pkg.go.dev/github.com/Flashlock/kahn-queue/go)
 
 ## Getting started
 

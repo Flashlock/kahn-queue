@@ -2,6 +2,8 @@
 
 [![npm](https://img.shields.io/npm/v/%40flashlock%2Fkahn-queue?label=npm)](https://www.npmjs.com/package/@flashlock/kahn-queue)
 [![PyPI](https://img.shields.io/pypi/v/kahn-queue?label=PyPI)](https://pypi.org/project/kahn-queue/)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.flashlock/kahn-queue)](https://central.sonatype.com/artifact/io.github.flashlock/kahn-queue)
+[![mvnrepository](https://img.shields.io/badge/mvnrepository-kahn--queue-437291?logo=apachemaven)](https://mvnrepository.com/artifact/io.github.flashlock/kahn-queue)
 
 **License:** [MIT](LICENSE)
 

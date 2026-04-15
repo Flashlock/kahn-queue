@@ -1,5 +1,7 @@
 # kahn-queue (TypeScript)
 
+[![npm](https://img.shields.io/npm/v/%40flashlock%2Fkahn-queue?label=npm)](https://www.npmjs.com/package/@flashlock/kahn-queue)
+
 ## Getting started
 
 - **TypeScript:** **~6** (`devDependencies` in `package.json`).
