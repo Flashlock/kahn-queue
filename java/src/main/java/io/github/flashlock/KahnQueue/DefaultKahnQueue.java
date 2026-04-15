@@ -51,14 +51,14 @@ public class DefaultKahnQueue implements KahnQueue {
             })
         .filter(cid -> cid != -1)
         .boxed()
-        .collect(Collectors.toSet());
+        .collect(Collectors.toCollection(TreeSet::new));
   }
 
   @Override
   public Set<Integer> prune(int id) {
     Dag.validateNode(id, dag.size());
 
-    Set<Integer> affected = new HashSet<>();
+    Set<Integer> affected = new TreeSet<>();
     Deque<Integer> stack = new ArrayDeque<>();
     stack.push(id);
 
@@ -81,6 +81,6 @@ public class DefaultKahnQueue implements KahnQueue {
         .filter(machine -> machine.is(NodeState.READY))
         .mapToInt(machine -> machine.id)
         .boxed()
-        .collect(Collectors.toSet());
+        .collect(Collectors.toCollection(TreeSet::new));
   }
 }

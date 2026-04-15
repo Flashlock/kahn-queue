@@ -1,9 +1,10 @@
 {
   "name": "@flashlock/kahn-queue",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Austin Betts",
   "license": "MIT",
-  "description": "Kahn-style ready-queue for dependency scheduling",
+  "description": "Lightweight Kahn-based ready queue for dependency-driven scheduling and workflows",
+  "homepage": "https://flashlock.github.io/kahn-queue/",
   "publishConfig": {
     "access": "public"
   },
@@ -25,7 +26,19 @@
       "import": "./dist/index.js"
     }
   },
-  "keywords": [],
+  "keywords": [
+    "kahn queue",
+    "kahn-style scheduler",
+    "topological sort queue",
+    "dynamic topological sort",
+    "ready queue",
+    "dependency scheduler",
+    "dag scheduler",
+    "incremental topological sort",
+    "agent orchestration",
+    "parallel task scheduling",
+    "deterministic scheduler"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",

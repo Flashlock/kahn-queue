@@ -1,12 +1,15 @@
 plugins {
     `java-library`
     `maven-publish`
+    signing
+    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
 }
 
 group = "io.github.flashlock"
-version = "1.0-SNAPSHOT"
+// Allow CI/tagged releases to override via `-Pversion=...`
+version = (findProperty("version") as String?) ?: "1.0.0"
 
-description = "Kahn-style ready-queue for dependency scheduling"
+description = "Lightweight Kahn-based ready queue for dependency-driven scheduling and workflows"
 
 repositories {
     mavenCentral()
@@ -41,25 +44,53 @@ publishing {
             pom {
                 name.set("kahn-queue")
                 description.set(project.description)
-                url.set("https://github.com/Flashlock/kahn-queue")
+                url.set("https://flashlock.github.io/kahn-queue/")
+
+                licenses {
+                    license {
+                        name.set("MIT License")
+                        url.set("https://opensource.org/license/mit/")
+                        distribution.set("repo")
+                    }
+                }
+
+                developers {
+                    developer {
+                        id.set("flashlock")
+                        name.set("Flashlock")
+                    }
+                }
+
+                scm {
+                    url.set("https://github.com/Flashlock/kahn-queue")
+                    connection.set("scm:git:https://github.com/Flashlock/kahn-queue.git")
+                    developerConnection.set("scm:git:ssh://git@github.com/Flashlock/kahn-queue.git")
+                }
             }
         }
     }
-    // Add a remote repo via ~/.gradle/gradle.properties, e.g.:
-    // mavenPublishUrl=https://oss.sonatype.org/service/local/staging/deploy/maven2/
-    // mavenPublishUsername=...
-    // mavenPublishPassword=...
+}
+
+signing {
+    val signingKey = (findProperty("signingKey") as String?) ?: System.getenv("SIGNING_KEY")
+    val signingPassword =
+        (findProperty("signingPassword") as String?) ?: System.getenv("SIGNING_PASSWORD")
+
+    if (!signingKey.isNullOrBlank()) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign(publishing.publications["maven"])
+    }
+}
+
+nexusPublishing {
     repositories {
-        val urlProp = findProperty("mavenPublishUrl") as String?
-        if (!urlProp.isNullOrBlank()) {
-            maven {
-                name = "remote"
-                url = uri(urlProp)
-                credentials {
-                    username = (findProperty("mavenPublishUsername") as String?).orEmpty()
-                    password = (findProperty("mavenPublishPassword") as String?).orEmpty()
-                }
-            }
+        sonatype {
+            // Recommended: set these via GitHub Actions secrets as ORG_GRADLE_PROJECT_sonatypeUsername / sonatypePassword
+            // or via ~/.gradle/gradle.properties for local publishing.
+            // Sonatype Central (Publish Portal / OSSRH staging API):
+            // https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/#configuration
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
         }
     }
 }

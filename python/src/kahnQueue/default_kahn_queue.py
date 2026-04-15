@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections import deque
-from typing import List, Set
+from typing import List
 
 from dag import Dag, validate_node
 from kahnQueue.node_machine import NodeMachine
@@ -17,7 +16,7 @@ class DefaultKahnQueue(KahnQueue):
             NodeMachine.create(i, dag.in_degree(i)) for i in range(dag.size())
         ]
 
-    def pop(self, id: int) -> Set[int]:
+    def pop(self, id: int) -> List[int]:
         validate_node(id, self._dag.size())
         machine = self._node_machines[id]
         
@@ -26,7 +25,7 @@ class DefaultKahnQueue(KahnQueue):
         
         machine.transition(NodeState.COMPLETE)
 
-        promoted: Set[int] = set()
+        promoted: List[int] = []
         for cid in self._dag.targets(id):
             child = self._node_machines[cid]
             child.decrement()
@@ -34,12 +33,12 @@ class DefaultKahnQueue(KahnQueue):
             # in a single-threaded queue.
             if child.is_(NodeState.READY):
                 child.transition(NodeState.ACTIVE)
-                promoted.add(cid)
+                promoted.append(cid)
         return promoted
 
-    def prune(self, id: int) -> Set[int]:
+    def prune(self, id: int) -> List[int]:
         validate_node(id, self._dag.size())
-        affected: Set[int] = set()
+        affected: set[int] = set()
         stack: List[int] = [id]
         
         while stack:
@@ -54,7 +53,8 @@ class DefaultKahnQueue(KahnQueue):
             affected.add(curr)
             stack.extend(self._dag.targets(curr))
             
-        return affected
+        return sorted(affected)
 
-    def ready_ids(self) -> Set[int]:
-        return {m.id for m in self._node_machines if m.is_(NodeState.READY)}
+    def ready_ids(self) -> List[int]:
+        # Deterministic: ids are scanned in ascending order.
+        return [m.id for m in self._node_machines if m.is_(NodeState.READY)]

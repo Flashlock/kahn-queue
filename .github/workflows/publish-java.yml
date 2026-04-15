@@ -1,16 +1,14 @@
-# Placeholder until Maven Central (or another registry) is configured in java/build.gradle.kts
-# with mavenPublishUrl + credentials. Then replace the final step with:
-#   ./gradlew publish
-# and add secrets for the repository.
+# Publish the Java package on tags: `java/vX.Y.Z`.
+#
+# This workflow is intended for Maven Central publishing once Gradle signing + publishing
+# are configured in `java/build.gradle.kts`.
 
-name: Publish Java (Maven — placeholder)
+name: Publish Java (Maven Central)
 
 on:
   push:
-    branches: [main]
-    paths:
-      - "java/**"
-      - ".github/workflows/publish-java.yml"
+    tags:
+      - "java/v*"
   workflow_dispatch:
 
 concurrency:
@@ -18,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,15 +26,35 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+          cache: gradle
+
+      - name: Validate tag matches Gradle project version
+        working-directory: java
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          EXPECTED="${TAG#java/v}"
+          chmod +x ./gradlew
+          ACTUAL="$(./gradlew -q -Pversion="${EXPECTED}" properties | grep '^version:' | awk '{print $2}')"
+          if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+            echo "Tag ${TAG} expects version ${EXPECTED}, but Gradle version is ${ACTUAL}"
+            exit 1
+          fi
+          echo "OK: ${TAG} matches Gradle version ${ACTUAL}"
 
       - name: Gradle build
         working-directory: java
         run: |
           chmod +x ./gradlew
-          ./gradlew assemble
+          ./gradlew -Pversion="${GITHUB_REF_NAME#java/v}" assemble
 
-      - name: Maven publish (disabled)
+      - name: Publish to Maven Central
         working-directory: java
+        env:
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.MAVEN_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
         run: |
-          echo "TODO: configure publishing in build.gradle.kts (mavenPublishUrl, credentials),"
-          echo "      add repository secrets, then run: ./gradlew publish"
+          VERSION="${GITHUB_REF_NAME#java/v}"
+          chmod +x ./gradlew
+          ./gradlew -Pversion="${VERSION}" publishToSonatype closeAndReleaseStagingRepositories

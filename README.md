@@ -1,5 +1,8 @@
 # kahn-queue
 
+[![npm](https://img.shields.io/npm/v/%40flashlock%2Fkahn-queue?label=npm)](https://www.npmjs.com/package/@flashlock/kahn-queue)
+[![PyPI](https://img.shields.io/pypi/v/kahn-queue?label=PyPI)](https://pypi.org/project/kahn-queue/)
+
 **License:** [MIT](LICENSE)
 
 ## Quick start
@@ -14,7 +17,7 @@ make deploy      # deploy/publish all (where configured; see make help)
 
 ## What is a KahnQueue?
 
-A **KahnQueue** is a queue-like datastructure which facilitates topological iteration over a **DAG**.
+A **KahnQueue** is a lightweight Kahn-based ready queue for dependency-driven scheduling and workflows.
 
 This is highly relevant when work can be modeled as a **DAG** where each node represents some unit of work, and edges represent dependencies. Each implementation provides single threaded and multi-threaded support, allowing work to run as asynchronously as possible.
 

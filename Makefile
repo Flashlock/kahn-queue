@@ -12,7 +12,11 @@ TS := cd typescript &&
 	build-java test-java clean-java deploy-java \
 	build-go test-go clean-go deploy-go \
 	build-python test-python clean-python deploy-python \
-	build-typescript test-typescript clean-typescript deploy-typescript
+	build-typescript test-typescript clean-typescript deploy-typescript \
+	patch-java minor-java major-java \
+	patch-python minor-python major-python \
+	patch-typescript minor-typescript major-typescript \
+	patch-go minor-go major-go
 
 help:
 	@echo "Per language (build, test, clean, deploy):"
@@ -23,6 +27,12 @@ help:
 	@echo ""
 	@echo "All languages:"
 	@echo "  make build   make test   make clean   make deploy"
+	@echo ""
+	@echo "Release helpers (bumps metadata + commits + tags language/vX.Y.Z):"
+	@echo "  make patch-java | minor-java | major-java"
+	@echo "  make patch-python | minor-python | major-python"
+	@echo "  make patch-typescript | minor-typescript | major-typescript"
+	@echo "  make patch-go | minor-go | major-go"
 
 # --- Java --------------------------------------------------------------------
 
@@ -80,6 +90,36 @@ clean-typescript:
 
 deploy-typescript:
 	$(TS) npm install && npm run build && npm publish --access public
+
+# --- Release helpers ----------------------------------------------------------
+
+patch-java:
+	./scripts/bump-version.sh patch java
+minor-java:
+	./scripts/bump-version.sh minor java
+major-java:
+	./scripts/bump-version.sh major java
+
+patch-python:
+	./scripts/bump-version.sh patch python
+minor-python:
+	./scripts/bump-version.sh minor python
+major-python:
+	./scripts/bump-version.sh major python
+
+patch-typescript:
+	./scripts/bump-version.sh patch typescript
+minor-typescript:
+	./scripts/bump-version.sh minor typescript
+major-typescript:
+	./scripts/bump-version.sh major typescript
+
+patch-go:
+	./scripts/bump-version.sh patch go
+minor-go:
+	./scripts/bump-version.sh minor go
+major-go:
+	./scripts/bump-version.sh major go
 
 # --- All languages -------------------------------------------------------------
 

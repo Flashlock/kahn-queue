@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from threading import RLock
-from typing import List, Set
+from typing import List
 
 from dag import Dag, validate_node
 from kahnQueue.node_machine import NodeMachine
@@ -25,7 +25,7 @@ class ConcurrentKahnQueue(KahnQueue):
         ]
         self._locks = [RLock() for _ in range(dag.size())]
 
-    def pop(self, id: int) -> Set[int]:
+    def pop(self, id: int) -> List[int]:
         validate_node(id, self._dag.size())
         
         with self._locks[id]:
@@ -35,7 +35,7 @@ class ConcurrentKahnQueue(KahnQueue):
             
             machine.transition(NodeState.COMPLETE)
 
-            promoted: Set[int] = set()
+            promoted: set[int] = set()
             for cid in self._dag.targets(id):
                 with self._locks[cid]:
                     child = self._node_machines[cid]
@@ -44,12 +44,12 @@ class ConcurrentKahnQueue(KahnQueue):
                     if child.can_transition(NodeState.ACTIVE):
                         child.transition(NodeState.ACTIVE)
                         promoted.add(cid)
-            return promoted
+            return sorted(promoted)
 
-    def prune(self, id: int) -> Set[int]:
+    def prune(self, id: int) -> List[int]:
         validate_node(id, self._dag.size())
         
-        affected: Set[int] = set()
+        affected: set[int] = set()
         stack: List[int] = [id]
 
         while stack:
@@ -66,10 +66,9 @@ class ConcurrentKahnQueue(KahnQueue):
             # Adding targets outside the lock is safe as the DAG structure is immutable
             stack.extend(self._dag.targets(curr))
             
-        return affected
+        return sorted(affected)
 
-    def ready_ids(self) -> Set[int]:
-        return {
-            m.id for m in self._node_machines 
-            if m.is_(NodeState.READY)
-        }
+    def ready_ids(self) -> List[int]:
+        # Deterministic ordering for sequential callers; may not reflect a consistent snapshot
+        # under concurrent updates.
+        return [m.id for m in self._node_machines if m.is_(NodeState.READY)]

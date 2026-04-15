@@ -1,4 +1,4 @@
-# Publish the Python package to PyPI when `python/` changes on main.
+# Publish the Python package to PyPI on tags: `python/vX.Y.Z`.
 #
 # Repository secrets:
 #   PYPI_API_TOKEN — PyPI API token (password; use username __token__ below).
@@ -7,10 +7,8 @@ name: Publish Python (PyPI)
 
 on:
   push:
-    branches: [main]
-    paths:
-      - "python/**"
-      - ".github/workflows/publish-python.yml"
+    tags:
+      - "python/v*"
   workflow_dispatch:
 
 concurrency:
@@ -33,6 +31,29 @@ jobs:
 
       - name: Install build tools
         run: pip install --upgrade pip build twine
+
+      - name: Validate tag matches pyproject version
+        run: |
+          python - <<'PY'
+          import os, re, sys
+          try:
+              import tomllib  # py3.11+
+          except Exception:  # pragma: no cover
+              import tomli as tomllib  # type: ignore
+          tag = os.environ["GITHUB_REF_NAME"]
+          m = re.match(r"^python/v(.+)$", tag)
+          if not m:
+              print(f"Unexpected tag format: {tag}", file=sys.stderr)
+              sys.exit(1)
+          expected = m.group(1)
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          actual = data["project"]["version"]
+          if actual != expected:
+              print(f"Tag {tag} expects version {expected}, but pyproject.toml has {actual}", file=sys.stderr)
+              sys.exit(1)
+          print(f"OK: {tag} matches pyproject.toml version {actual}")
+          PY
 
       - name: Run tests
         run: |

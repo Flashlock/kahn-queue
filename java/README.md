@@ -12,7 +12,7 @@
 | Piece | Role |
 |--------|------|
 | `Dag<T>` | Immutable DAG: build with `Dag.builder()`, add nodes and `connect(source, target)`. |
-| `DagScheduler<T>` | Drives execution: `run()`, then `signalComplete` / `signalFailed`; `getResult()` returns `DagResult` (completed / failed / pruned ids). |
+| `KahnScheduler<T>` | Drives execution: `run()`, then `signalComplete` / `signalFailed`; `getResult()` returns `DagResult` (completed / failed / pruned ids). |
 | `KahnQueue` | Pluggable backing queue: **`DefaultKahnQueue`** (single-threaded updates) or **`ConcurrentKahnQueue`** (concurrent `pop` / `prune`). |
 | `IllegalGraphException` | Thrown for invalid graphs (e.g. self-loop or cycle at `build()`). |
 | `NodeProgressTracker` | Optional per-node progress in `[0, 1]` for UI; not required for scheduling. |
@@ -35,7 +35,7 @@ builder
 
 Dag<String> dag = builder.build();
 
-var scheduler = new DagScheduler<>(dag, (id, sched) -> {
+var scheduler = new KahnScheduler<>(dag, (id, sched) -> {
   try {
     runStep(dag.get(id)); // e.g. Async.procedure(() -> run());
     sched.signalComplete(id);
@@ -46,10 +46,10 @@ var scheduler = new DagScheduler<>(dag, (id, sched) -> {
 scheduler.run();
 
 // Workflow.await(scheduler::isFinished);
-DagScheduler.DagResult result = scheduler.getResult();
+KahnScheduler.DagResult result = scheduler.getResult();
 ```
 
-The two-arg `DagScheduler` constructor uses a single-threaded `DefaultKahnQueue` under the hood.
+The two-arg `KahnScheduler` constructor uses a single-threaded `DefaultKahnQueue` under the hood.
 
 ### Concurrent (thread pool)
 
@@ -75,7 +75,7 @@ builder
 
 Dag<String> dag = builder.build();
 
-var scheduler = new DagScheduler<>(
+var scheduler = new KahnScheduler<>(
     dag,
     (id, sched) -> pool.submit(() -> {
       try {
@@ -91,7 +91,7 @@ var scheduler = new DagScheduler<>(
 
   scheduler.run();
 
-DagScheduler.DagResult result = scheduler.getResult();
+KahnScheduler.DagResult result = scheduler.getResult();
 }finally{
     pool.shutdown();
 }

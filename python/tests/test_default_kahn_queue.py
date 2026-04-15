@@ -12,7 +12,7 @@ def _force_node_state(q: DefaultKahnQueue, id_: int, state: NodeState) -> None:
 def test_empty_dag_ready_ids_empty_and_pop_rejects_invalid_id():
     dag = Dag.builder().build()
     q = DefaultKahnQueue(dag)
-    assert q.ready_ids() == set()
+    assert q.ready_ids() == []
     with pytest.raises(IndexError):
         q.pop(0)
 
@@ -25,7 +25,7 @@ def test_ready_ids_contains_only_zero_in_degree_nodes():
     b.connect(root, mid).connect(mid, leaf)
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.ready_ids() == {root}
+    assert q.ready_ids() == [root]
 
 
 def test_ready_ids_two_independent_roots():
@@ -36,7 +36,7 @@ def test_ready_ids_two_independent_roots():
     b.connect(a, join).connect(c, join)
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.ready_ids() == {a, c}
+    assert q.ready_ids() == [a, c]
 
 
 def test_pop_throws_when_node_is_ready_not_active():
@@ -44,7 +44,7 @@ def test_pop_throws_when_node_is_ready_not_active():
     only = b.add("x")
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.ready_ids() == {only}
+    assert q.ready_ids() == [only]
     with pytest.raises(ValueError) as ex:
         q.pop(only)
     assert "Pop failed. Node" in str(ex.value)
@@ -68,7 +68,7 @@ def test_prune_marks_root_and_reachable_descendants():
     b.connect(r, m).connect(m, l)
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.prune(r) == {r, m, l}
+    assert set(q.prune(r)) == {r, m, l}
 
 
 def test_prune_fork_collects_all_branches():
@@ -79,7 +79,7 @@ def test_prune_fork_collects_all_branches():
     b.connect(root, left).connect(root, right)
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.prune(root) == {root, left, right}
+    assert set(q.prune(root)) == {root, left, right}
 
 
 def test_prune_removes_ids_from_ready_set():
@@ -90,9 +90,9 @@ def test_prune_removes_ids_from_ready_set():
     b.connect(a, join).connect(c, join)
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.ready_ids() == {a, c}
+    assert q.ready_ids() == [a, c]
     q.prune(a)
-    assert q.ready_ids() == {c}
+    assert q.ready_ids() == [c]
 
 
 def test_prune_second_call_throws():
@@ -100,10 +100,10 @@ def test_prune_second_call_throws():
     r = b.add("r")
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.prune(r) == {r}
-    assert q.ready_ids() == set()
+    assert q.prune(r) == [r]
+    assert q.ready_ids() == []
     # DefaultKahnQueue.prune is idempotent for already-pruned branches.
-    assert q.prune(r) == set()
+    assert q.prune(r) == []
 
 
 def test_kahn_progression_pop_active_node_returns_promoted_dependents():
@@ -116,8 +116,8 @@ def test_kahn_progression_pop_active_node_returns_promoted_dependents():
     q = DefaultKahnQueue(dag)
 
     _force_node_state(q, root, NodeState.ACTIVE)
-    assert q.pop(root) == {mid}
-    assert q.pop(mid) == {leaf}
-    assert q.pop(leaf) == set()
-    assert q.ready_ids() == set()
+    assert q.pop(root) == [mid]
+    assert q.pop(mid) == [leaf]
+    assert q.pop(leaf) == []
+    assert q.ready_ids() == []
 

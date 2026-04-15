@@ -1,4 +1,4 @@
-# Publish the TypeScript package to npm when `typescript/` changes on main.
+# Publish the TypeScript package to npm on tags: `typescript/vX.Y.Z`.
 #
 # Repository secrets (Settings → Secrets → Actions):
 #   NPM_TOKEN — npm automation token with permission to publish this package.
@@ -7,10 +7,8 @@ name: Publish TypeScript (npm)
 
 on:
   push:
-    branches: [main]
-    paths:
-      - "typescript/**"
-      - ".github/workflows/publish-typescript.yml"
+    tags:
+      - "typescript/v*"
   workflow_dispatch:
 
 concurrency:
@@ -31,6 +29,10 @@ jobs:
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
+
+      - name: Validate tag matches package version
+        run: |
+          node -e "const tag='${GITHUB_REF_NAME}'; const expected=tag.replace(/^typescript\/v/,''); const pkg=require('./package.json'); if(pkg.version!==expected){ console.error(`Tag ${tag} expects version ${expected}, but package.json has ${pkg.version}`); process.exit(1);} console.log(`OK: ${tag} matches package.json version ${pkg.version}`);"
 
       - run: npm ci
 

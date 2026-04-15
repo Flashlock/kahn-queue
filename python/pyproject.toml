@@ -4,15 +4,27 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kahn-queue"
-version = "0.1.1"
-description = "Kahn-style ready-queue for dependency scheduling"
+version = "1.0.0"
+description = "Lightweight Kahn-based ready queue for dependency-driven scheduling and workflows"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-keywords = ["dag", "scheduler", "workflow", "kahn"]
+keywords = [
+  "kahn queue",
+  "kahn-style scheduler",
+  "topological sort queue",
+  "dynamic topological sort",
+  "ready queue",
+  "dependency scheduler",
+  "dag scheduler",
+  "incremental topological sort",
+  "agent orchestration",
+  "parallel task scheduling",
+  "deterministic scheduler",
+]
 
 [project.urls]
-Homepage = "https://github.com/Flashlock/kahn-queue"
+Homepage = "https://flashlock.github.io/kahn-queue/"
 Repository = "https://github.com/Flashlock/kahn-queue"
 
 # Layout: packages under src/ plus top-level modules (dag, scheduler, …).

@@ -17,7 +17,7 @@ def _force_node_state(q: ConcurrentKahnQueue, id_: int, state: NodeState) -> Non
 def test_basics_ready_ids_and_pop_validation():
     empty = Dag.builder().build()
     q0 = ConcurrentKahnQueue(empty)
-    assert q0.ready_ids() == set()
+    assert q0.ready_ids() == []
     with pytest.raises(IndexError):
         q0.pop(0)
 
@@ -28,7 +28,7 @@ def test_basics_ready_ids_and_pop_validation():
     chain.connect(root, mid).connect(mid, leaf)
     dag_chain = chain.build()
     qc = ConcurrentKahnQueue(dag_chain)
-    assert qc.ready_ids() == {root}
+    assert qc.ready_ids() == [root]
 
     join = Dag.builder()
     a = join.add("a")
@@ -37,13 +37,13 @@ def test_basics_ready_ids_and_pop_validation():
     join.connect(a, jn).connect(c, jn)
     dag_join = join.build()
     qj = ConcurrentKahnQueue(dag_join)
-    assert qj.ready_ids() == {a, c}
+    assert qj.ready_ids() == [a, c]
 
     one = Dag.builder()
     only = one.add("x")
     dag_one = one.build()
     q1 = ConcurrentKahnQueue(dag_one)
-    assert q1.ready_ids() == {only}
+    assert q1.ready_ids() == [only]
     with pytest.raises(ValueError) as ex:
         q1.pop(only)
     assert "Pop failed. Node" in str(ex.value)
@@ -64,7 +64,7 @@ def test_prune_collects_reachable_in_linear_and_fork_shapes():
     l = b1.add("l")
     b1.connect(r, m).connect(m, l)
     q1 = ConcurrentKahnQueue(b1.build())
-    assert q1.prune(r) == {r, m, l}
+    assert set(q1.prune(r)) == {r, m, l}
 
     b2 = Dag.builder()
     root = b2.add("root")
@@ -72,7 +72,7 @@ def test_prune_collects_reachable_in_linear_and_fork_shapes():
     right = b2.add("right")
     b2.connect(root, left).connect(root, right)
     q2 = ConcurrentKahnQueue(b2.build())
-    assert q2.prune(root) == {root, left, right}
+    assert set(q2.prune(root)) == {root, left, right}
 
 
 def test_prune_updates_ready_set():
@@ -83,9 +83,9 @@ def test_prune_updates_ready_set():
     b.connect(a, join).connect(c, join)
     dag = b.build()
     q = ConcurrentKahnQueue(dag)
-    assert q.ready_ids() == {a, c}
+    assert q.ready_ids() == [a, c]
     q.prune(a)
-    assert q.ready_ids() == {c}
+    assert q.ready_ids() == [c]
 
 
 def test_ready_ids_stable_under_sequential_repeats():
@@ -108,10 +108,10 @@ def test_prune_second_call_throws():
     r = b.add("r")
     dag = b.build()
     q = ConcurrentKahnQueue(dag)
-    assert q.prune(r) == {r}
-    assert q.ready_ids() == set()
+    assert q.prune(r) == [r]
+    assert q.ready_ids() == []
     # ConcurrentKahnQueue.prune is idempotent for already-pruned branches.
-    assert q.prune(r) == set()
+    assert q.prune(r) == []
     for id_ in q.ready_ids():
         Dag.validate_node(id_, dag.size())
 
@@ -125,10 +125,10 @@ def test_kahn_progression_pop_active_node_returns_promoted_dependents():
     dag = b.build()
     q = ConcurrentKahnQueue(dag)
     _force_node_state(q, root, NodeState.ACTIVE)
-    assert q.pop(root) == {mid}
-    assert q.pop(mid) == {leaf}
-    assert q.pop(leaf) == set()
-    assert q.ready_ids() == set()
+    assert q.pop(root) == [mid]
+    assert q.pop(mid) == [leaf]
+    assert q.pop(leaf) == []
+    assert q.ready_ids() == []
     for id_ in q.ready_ids():
         Dag.validate_node(id_, dag.size())
 
@@ -141,7 +141,7 @@ def test_concurrent_ready_ids_stress_reads_match_snapshot():
         b.connect(x, y)
         dag = b.build()
         q = ConcurrentKahnQueue(dag)
-        expected = {x}
+        expected = [x]
         assert q.ready_ids() == expected
 
         def worker():
@@ -166,9 +166,9 @@ def test_concurrent_disjoint_prune():
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
             f1 = pool.submit(q.prune, left)
             f2 = pool.submit(q.prune, right)
-            assert f1.result() == {left}
-            assert f2.result() == {right}
-        assert q.ready_ids() == set()
+            assert f1.result() == [left]
+            assert f2.result() == [right]
+        assert q.ready_ids() == []
 
 
 def test_concurrent_pop_failures_do_not_mutate_ready():
@@ -208,9 +208,9 @@ def test_concurrent_same_id_prune_contention():
             futures = [pool.submit(worker) for _ in range(8)]
             start.set()
             results = [f.result(timeout=30) for f in futures]
-        assert results.count({root}) == 1
-        assert results.count(set()) == 7
-        assert q.ready_ids() == set()
+        assert results.count([root]) == 1
+        assert results.count([]) == 7
+        assert q.ready_ids() == []
 
 
 def test_concurrent_overlapping_prune():
@@ -240,9 +240,9 @@ def test_concurrent_overlapping_prune():
 
         assert set(s1) | set(s2) == {r, m, l}
 
-        any_full = (s1 == {r, m, l}) or (s2 == {r, m, l})
+        any_full = (set(s1) == {r, m, l}) or (set(s2) == {r, m, l})
         if any_full:
-            assert q.ready_ids() == set()
+            assert q.ready_ids() == []
 
 
 def test_prune_mutation_visible_to_other_thread_after_future_get():
@@ -253,8 +253,8 @@ def test_prune_mutation_visible_to_other_thread_after_future_get():
     q = ConcurrentKahnQueue(dag)
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
         done = pool.submit(q.prune, left)
-        assert done.result(timeout=10) == {left}
-    assert q.ready_ids() == {right}
+        assert done.result(timeout=10) == [left]
+    assert q.ready_ids() == [right]
 
 
 def _get_prune_result_or_illegal_state(fut: "concurrent.futures.Future[set[int]]"):
