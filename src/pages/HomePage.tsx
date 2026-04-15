@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Seo } from "../components/Seo";
 import { GITHUB_ORG_REPO, GITHUB_REPO_URL } from "../config/docs";
@@ -5,11 +6,28 @@ import { DEFAULT_DESCRIPTION, SITE_NAME } from "../config/site";
 import { HomeHeroGraph } from "./HomeHeroGraph";
 import "./HomePage.css";
 
+function useMinWidth(px: number): boolean {
+  const [ok, setOk] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(min-width: ${px}px)`);
+    const update = () => setOk(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, [px]);
+
+  return ok;
+}
+
 export function HomePage() {
+  // Only show the ambient graph on truly large desktops (avoid laptops + mobile).
+  const showHeroGraph = useMinWidth(1536);
+
   return (
     <div className="home">
       <Seo title={SITE_NAME} description={DEFAULT_DESCRIPTION} />
-      <HomeHeroGraph />
+      {showHeroGraph && <HomeHeroGraph />}
       <div className="home-inner">
         <div className="home-hero">
           <p className="eyebrow">Dependency-ready scheduling</p>

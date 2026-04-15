@@ -49,6 +49,7 @@
   flex: 1;
   min-height: 0;
   align-items: stretch;
+  position: relative;
 }
 
 .demo-flow-wrap {
@@ -249,9 +250,70 @@
 @media (max-width: 960px) {
   .demo-shell {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0;
   }
 
   .demo-side {
-    max-height: 200px;
+    position: absolute;
+    left: 0.65rem;
+    right: 0.65rem;
+    bottom: 0.65rem;
+    width: auto;
+    max-height: none;
+    padding: 0.55rem 0.7rem 0.6rem;
+    background: rgba(15, 23, 42, 0.92);
+    border-color: rgba(148, 163, 184, 0.22);
+    border-radius: 0.85rem;
+    box-shadow:
+      0 18px 50px rgba(2, 6, 23, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px) saturate(1.25);
+    -webkit-backdrop-filter: blur(10px) saturate(1.25);
+    z-index: 20;
+  }
+
+  .demo-side h2,
+  .demo-side-hint {
+    display: none;
+  }
+
+  .demo-total-progress {
+    margin: 0 0 0.35rem;
+  }
+
+  .demo-log {
+    flex: 0;
+    overflow: hidden;
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+    font-size: 0.76rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .demo-log li {
+    display: none;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .demo-log li:last-child {
+    display: block;
+    text-align: right;
+  }
+
+  .demo-panel {
+    gap: 0.35rem;
+    padding: 0.35rem !important;
+  }
+
+  .demo-btn {
+    font-size: 0.7rem;
+    padding: 0.28rem 0.5rem;
+    border-radius: 0.38rem;
   }
 }

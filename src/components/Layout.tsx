@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { DOC_PAGES, GITHUB_ORG_REPO, GITHUB_REPO_URL } from "../config/docs";
 import "./Layout.css";
@@ -7,11 +8,33 @@ export function Layout() {
   const isDemo = pathname === "/demo";
   const isHome = pathname === "/";
 
-  const shellClass = ["shell", isDemo && "shell--demo", isHome && "shell--home"].filter(Boolean).join(" ");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    // Close drawer on navigation.
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  const openSidebar = useCallback(() => setSidebarOpen(true), []);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+
+  const shellClass = useMemo(
+    () =>
+      ["shell", isDemo && "shell--demo", isHome && "shell--home", sidebarOpen && "shell--sidebar-open"]
+        .filter(Boolean)
+        .join(" "),
+    [isDemo, isHome, sidebarOpen],
+  );
 
   return (
     <div className={shellClass}>
-      <aside className="sidebar">
+      <button type="button" className="sidebar-toggle" onClick={openSidebar} aria-label="Open navigation">
+        Menu
+      </button>
+
+      <div className="sidebar-scrim" aria-hidden onClick={closeSidebar} />
+
+      <aside className="sidebar" aria-label="Sidebar navigation">
         <div className="sidebar-header">
           <div className="brand">
             <span className="brand-mark">KQ</span>

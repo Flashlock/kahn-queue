@@ -239,6 +239,7 @@ function DemoPageInner() {
             <div className="demo-total-progress-label">{Math.round(totalProgress * 100)}%</div>
           </div>
           <ul className="demo-log">
+            {log.length === 0 ? <li>&nbsp;</li> : null}
             {log.map((line, i) => (
               <li key={`${i}-${line}`}>{line}</li>
             ))}
