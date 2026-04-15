@@ -3,6 +3,8 @@ export const DOCS_BRANCH = "master";
 
 export const GITHUB_ORG_REPO = "Flashlock/kahn-queue";
 
+export const GITHUB_REPO_URL = `https://github.com/${GITHUB_ORG_REPO}`;
+
 export const RAW_README_BASE = `https://raw.githubusercontent.com/${GITHUB_ORG_REPO}/${DOCS_BRANCH}`;
 
 export type DocSlug = "overview" | "java" | "go" | "typescript" | "python";

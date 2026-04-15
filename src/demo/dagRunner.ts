@@ -4,8 +4,8 @@ import type { Dag } from "@flashlock/kahn-queue";
  * Runs the DAG in Kahn layers: each wave is all nodes with in-degree zero among those not yet finished
  * (parallel “ready” set). Invokes `onWave` once per wave; await inside to animate highlights.
  */
-export async function runDagInWaves(
-  dag: Dag<string>,
+export async function runDagInWaves<T>(
+  dag: Dag<T>,
   onWave: (ids: number[]) => Promise<void>,
 ): Promise<void> {
   const inDeg = Array.from({ length: dag.size }, (_, i) => dag.inDegree(i));
