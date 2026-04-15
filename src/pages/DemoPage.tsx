@@ -16,12 +16,13 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { NodeProgressTracker } from "@flashlock/kahn-queue";
 import { Seo } from "../components/Seo";
 import { buildDagFromFlow } from "../demo/buildDagFromFlow";
 import { runDagInWaves } from "../demo/dagRunner";
 import "./DemoPage.css";
 
-type DagData = { label: string; status: "idle" | "running" | "done" };
+type DagData = { label: string; status: "idle" | "running" | "done"; progress: number };
 
 /** Custom node: data payload + literal `"dag"` type tag (see NodeProps in @xyflow/react). */
 type DagFlowNode = Node<DagData, "dag">;
@@ -33,6 +34,11 @@ function DagNode(props: NodeProps<DagFlowNode>) {
       <Handle className="dag-handle" type="target" position={Position.Top} />
       <div className={`dag-node dag-node--${data.status}`}>
         <span className="dag-node-label">{data.label}</span>
+        {data.status === "running" && (
+          <div className="dag-node-progress" aria-hidden>
+            <div className="dag-node-progress-bar" style={{ width: `${Math.round(data.progress * 100)}%` }} />
+          </div>
+        )}
       </div>
       <Handle className="dag-handle" type="source" position={Position.Bottom} />
     </>
@@ -42,9 +48,9 @@ function DagNode(props: NodeProps<DagFlowNode>) {
 const nodeTypes = { dag: DagNode };
 
 const initialNodes: DagFlowNode[] = [
-  { id: "n1", type: "dag", position: { x: 140, y: 20 }, data: { label: "lint", status: "idle" } },
-  { id: "n2", type: "dag", position: { x: 140, y: 140 }, data: { label: "compile", status: "idle" } },
-  { id: "n3", type: "dag", position: { x: 140, y: 260 }, data: { label: "test", status: "idle" } },
+  { id: "n1", type: "dag", position: { x: 140, y: 20 }, data: { label: "lint", status: "idle", progress: 0 } },
+  { id: "n2", type: "dag", position: { x: 140, y: 140 }, data: { label: "compile", status: "idle", progress: 0 } },
+  { id: "n3", type: "dag", position: { x: 140, y: 260 }, data: { label: "test", status: "idle", progress: 0 } },
 ];
 
 const initialEdges: Edge[] = [
@@ -58,7 +64,12 @@ function setStatuses(nodes: DagFlowNode[], rfIds: string[], status: DagData["sta
 }
 
 function allIdle(nodes: DagFlowNode[]): DagFlowNode[] {
-  return nodes.map((n) => ({ ...n, data: { ...n.data, status: "idle" } }));
+  return nodes.map((n) => ({ ...n, data: { ...n.data, status: "idle", progress: 0 } }));
+}
+
+function setProgress(nodes: DagFlowNode[], rfIds: string[], progress: number): DagFlowNode[] {
+  const set = new Set(rfIds);
+  return nodes.map((n) => (set.has(n.id) ? { ...n, data: { ...n.data, progress } } : n));
 }
 
 function DemoPageInner() {
@@ -67,7 +78,9 @@ function DemoPageInner() {
   const [log, setLog] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalProgress, setTotalProgress] = useState(0);
   const idRef = useRef(4);
+  const progressRef = useRef<NodeProgressTracker | null>(null);
 
   const onConnect = useCallback(
     (c: Connection) =>
@@ -86,7 +99,7 @@ function DemoPageInner() {
         id: `n${n}`,
         type: "dag",
         position: { x: 40 + (n % 3) * 120, y },
-        data: { label: `step ${n}`, status: "idle" },
+        data: { label: `step ${n}`, status: "idle", progress: 0 },
       },
     ]);
   }, [setNodes]);
@@ -97,6 +110,8 @@ function DemoPageInner() {
     setLog([]);
     setError(null);
     idRef.current = 4;
+    progressRef.current = null;
+    setTotalProgress(0);
   }, [setNodes, setEdges]);
 
   const run = useCallback(async () => {
@@ -122,6 +137,8 @@ function DemoPageInner() {
 
     setRunning(true);
     setNodes((ns) => allIdle(ns));
+    setTotalProgress(0);
+    progressRef.current = new NodeProgressTracker(built.dag);
 
     let wave = 0;
     try {
@@ -131,8 +148,28 @@ function DemoPageInner() {
         const labels = ids.map((i) => built.dag.get(i)).join(", ");
         setLog((prev) => [...prev, `Wave ${wave}: ${labels}`]);
         setNodes((ns) => setStatuses(ns, rfIds, "running"));
-        await new Promise((r) => setTimeout(r, 720));
+        setNodes((ns) => setProgress(ns, rfIds, 0));
+
+        const tracker = progressRef.current;
+        const durationMs = 720;
+        const tickMs = 60;
+        const steps = Math.max(1, Math.floor(durationMs / tickMs));
+        for (let s = 1; s <= steps; s++) {
+          const p = s / steps;
+          if (tracker) {
+            for (const id of ids) tracker.put(id, p);
+            setTotalProgress(tracker.progress);
+          }
+          setNodes((ns) => setProgress(ns, rfIds, p));
+          await new Promise((r) => setTimeout(r, tickMs));
+        }
+
         setNodes((ns) => setStatuses(ns, rfIds, "done"));
+        if (tracker) {
+          for (const id of ids) tracker.put(id, 1);
+          setTotalProgress(tracker.progress);
+        }
+        setNodes((ns) => setProgress(ns, rfIds, 1));
         await new Promise((r) => setTimeout(r, 180));
       });
       setLog((prev) => [...prev, "Done — all nodes finished in Kahn order."]);
@@ -192,6 +229,15 @@ function DemoPageInner() {
         <aside className="demo-side">
           <h2>Wave log</h2>
           <p className="demo-side-hint">Parallel-ready nodes share a wave; the next wave starts when all current work is done.</p>
+          <div className="demo-total-progress" aria-hidden>
+            <div className="demo-total-progress-track">
+              <div
+                className="demo-total-progress-bar"
+                style={{ width: `${Math.round(totalProgress * 100)}%` }}
+              />
+            </div>
+            <div className="demo-total-progress-label">{Math.round(totalProgress * 100)}%</div>
+          </div>
           <ul className="demo-log">
             {log.map((line, i) => (
               <li key={`${i}-${line}`}>{line}</li>

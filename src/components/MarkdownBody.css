@@ -97,7 +97,7 @@
   text-decoration-color: rgba(56, 189, 248, 0.55);
 }
 
-.md-root code {
+.md-root code:not(.md-syntax-code) {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.88em;
   padding: 0.14em 0.42em;
@@ -111,6 +111,13 @@
 
 .md-syntax-block {
   overflow-x: auto;
+}
+
+.md-syntax-block .md-syntax-code {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  font-size: inherit !important;
 }
 
 .md-syntax-block .md-syntax-code {

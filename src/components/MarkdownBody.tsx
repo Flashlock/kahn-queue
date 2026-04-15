@@ -14,6 +14,14 @@ function isBlockCode(className: string | undefined, raw: string): boolean {
   return /\n/.test(raw);
 }
 
+function normalizeFencedCode(raw: string): string {
+  // react-markdown often includes a trailing newline; some sources also prepend a stray newline/space.
+  let text = raw.replace(/\n$/, "");
+  if (text.startsWith("\n")) text = text.slice(1);
+  if (text.startsWith(" ")) text = text.slice(1);
+  return text;
+}
+
 /** Prism language ids — READMEs often use short tags like `ts`. */
 const LANG_ALIASES: Record<string, string> = {
   ts: "typescript",
@@ -32,7 +40,7 @@ const mdComponents: Components = {
     return <>{children}</>;
   },
   code({ className, children }) {
-    const text = String(children).replace(/\n$/, "");
+    const text = normalizeFencedCode(String(children));
 
     if (!isBlockCode(className, text)) {
       return <code className={className}>{children}</code>;

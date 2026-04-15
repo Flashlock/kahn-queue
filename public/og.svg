@@ -7,6 +7,6 @@
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
   <text x="80" y="280" fill="#e2e8f0" font-family="system-ui,Segoe UI,sans-serif" font-size="72" font-weight="700">Kahn Queue</text>
-  <text x="80" y="360" fill="#94a3b8" font-family="system-ui,Segoe UI,sans-serif" font-size="32">DAG scheduling · Java · Go · TypeScript · Python</text>
+  <text x="80" y="360" fill="#94a3b8" font-family="system-ui,Segoe UI,sans-serif" font-size="32">DAG scheduling ï¿½ Java ï¿½ Go ï¿½ TypeScript ï¿½ Python</text>
   <rect x="80" y="420" width="120" height="6" rx="3" fill="#38bdf8"/>
 </svg>
