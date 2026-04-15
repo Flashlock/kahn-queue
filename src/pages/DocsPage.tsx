@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { MarkdownBody } from "../components/MarkdownBody";
+import { Seo } from "../components/Seo";
 import { type DocSlug, DOC_PAGES, readmeUrl } from "../config/docs";
 import "./DocsPage.css";
 
@@ -51,13 +52,21 @@ export function DocsPage() {
   if (!doc) {
     return (
       <div className="docs-page">
+        <Seo
+          title="Documentation"
+          description="The requested documentation page was not found."
+          robots="noindex, nofollow"
+        />
         <p className="docs-error">Unknown documentation slug.</p>
       </div>
     );
   }
 
+  const docDescription = `${doc.label} — Kahn Queue documentation (${doc.hint}). README loaded from the GitHub repository.`;
+
   return (
     <div className="docs-page">
+      <Seo title={doc.label} description={docDescription} />
       <header className="docs-header">
         <p className="docs-eyebrow">Documentation</p>
         <h1>{doc.label}</h1>

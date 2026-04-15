@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
+import { Seo } from "../components/Seo";
 import { GITHUB_ORG_REPO, GITHUB_REPO_URL } from "../config/docs";
+import { DEFAULT_DESCRIPTION, SITE_NAME } from "../config/site";
 import { HomeHeroGraph } from "./HomeHeroGraph";
 import "./HomePage.css";
 
 export function HomePage() {
   return (
     <div className="home">
+      <Seo title={SITE_NAME} description={DEFAULT_DESCRIPTION} />
       <HomeHeroGraph />
       <div className="home-inner">
         <div className="home-hero">

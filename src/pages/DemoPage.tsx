@@ -16,6 +16,7 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { Seo } from "../components/Seo";
 import { buildDagFromFlow } from "../demo/buildDagFromFlow";
 import { runDagInWaves } from "../demo/dagRunner";
 import "./DemoPage.css";
@@ -144,6 +145,10 @@ function DemoPageInner() {
 
   return (
     <div className="demo-page">
+      <Seo
+        title="Live demo"
+        description="Interactive DAG playground: draw nodes and edges, run a Kahn-style scheduler, and watch parallel-ready waves on the canvas. Uses the TypeScript Dag from Kahn Queue."
+      />
       <header className="demo-header">
         <p className="demo-eyebrow">Interactive</p>
         <h1>Scheduler playground</h1>
