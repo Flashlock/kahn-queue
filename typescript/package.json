@@ -1,6 +1,6 @@
 {
   "name": "@flashlock/kahn-queue",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Austin Betts",
   "license": "MIT",
   "description": "Lightweight Kahn-based ready queue for dependency-driven scheduling and workflows",
