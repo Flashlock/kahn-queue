@@ -16,6 +16,7 @@ Behavior:
     (so files and tags can’t drift behind each other). Go has no version file — tags only.
   - Applies one semver step: patch, minor, or major.
   - Writes the new version into ts/py/java metadata, stages, and makes one commit.
+  - For typescript, runs npm to refresh typescript/package-lock.json (needed for npm ci in CI).
   - Tags that commit: e.g. typescript/v1.0.2.
 
 Examples:
@@ -24,6 +25,7 @@ Examples:
 
 Notes:
   - Requires a POSIX shell (Git Bash / WSL).
+  - Typescript bumps require npm on PATH (updates package-lock.json).
   - Refuses to run if the git working tree is dirty.
   - Refuses duplicate languages in one invocation.
   - Does not push (you push commits + tags yourself).
@@ -133,11 +135,16 @@ write_file_version() {
 git_add_version_files_for_lang() {
   local lang="$1"
   case "$lang" in
-    typescript) git add typescript/package.json ;;
+    typescript) git add typescript/package.json typescript/package-lock.json ;;
     python) git add python/pyproject.toml ;;
     java) git add java/build.gradle.kts ;;
     go) ;;
   esac
+}
+
+# After package.json version changes, lockfile root version and tree must match or npm ci fails.
+refresh_typescript_lockfile() {
+  ( cd typescript && npm install --package-lock-only --no-fund --no-audit )
 }
 
 validate_lang() {
@@ -187,6 +194,13 @@ main() {
   local i
   for i in "${!langs[@]}"; do
     write_file_version "${langs[$i]}" "${nextv[$i]}"
+  done
+
+  for lang in "${langs[@]}"; do
+    if [ "$lang" = "typescript" ]; then
+      refresh_typescript_lockfile
+      break
+    fi
   done
 
   local any_file=false
