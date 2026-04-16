@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kahn-queue"
-version = "1.0.1"
+version = "1.0.2"
 description = "Lightweight Kahn-based ready queue for dependency-driven scheduling and workflows"
 readme = "README.md"
 requires-python = ">=3.10"
