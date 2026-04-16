@@ -24,7 +24,7 @@ This is highly relevant when work can be modeled as a **DAG** where each node re
 
 The goal of this project is to provide consistent multi-language support for a **KahnQueue**.
 
-## ABI
+## API
 
 - **peek()**: Get a collection of nodes which are ready to be ran.
 - **pop(someNode)**: Pops a node from the ready nodes, returns a collection of newly ready nodes.
