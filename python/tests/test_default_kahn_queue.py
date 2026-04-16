@@ -9,15 +9,15 @@ def _force_node_state(q: DefaultKahnQueue, id_: int, state: NodeState) -> None:
     q._node_machines[id_]._state = state  # mirrors Java tests using reflection
 
 
-def test_empty_dag_ready_ids_empty_and_pop_rejects_invalid_id():
+def test_empty_dag_peek_empty_and_pop_rejects_invalid_id():
     dag = Dag.builder().build()
     q = DefaultKahnQueue(dag)
-    assert q.ready_ids() == []
+    assert q.peek() == []
     with pytest.raises(IndexError):
         q.pop(0)
 
 
-def test_ready_ids_contains_only_zero_in_degree_nodes():
+def test_peek_contains_only_zero_in_degree_nodes():
     b = Dag.builder()
     root = b.add("root")
     mid = b.add("mid")
@@ -25,10 +25,10 @@ def test_ready_ids_contains_only_zero_in_degree_nodes():
     b.connect(root, mid).connect(mid, leaf)
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.ready_ids() == [root]
+    assert q.peek() == [root]
 
 
-def test_ready_ids_two_independent_roots():
+def test_peek_two_independent_roots():
     b = Dag.builder()
     a = b.add("a")
     c = b.add("c")
@@ -36,7 +36,7 @@ def test_ready_ids_two_independent_roots():
     b.connect(a, join).connect(c, join)
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.ready_ids() == [a, c]
+    assert q.peek() == [a, c]
 
 
 def test_pop_throws_when_node_is_ready_not_active():
@@ -44,7 +44,7 @@ def test_pop_throws_when_node_is_ready_not_active():
     only = b.add("x")
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.ready_ids() == [only]
+    assert q.peek() == [only]
     with pytest.raises(ValueError) as ex:
         q.pop(only)
     assert "Pop failed. Node" in str(ex.value)
@@ -90,9 +90,9 @@ def test_prune_removes_ids_from_ready_set():
     b.connect(a, join).connect(c, join)
     dag = b.build()
     q = DefaultKahnQueue(dag)
-    assert q.ready_ids() == [a, c]
+    assert q.peek() == [a, c]
     q.prune(a)
-    assert q.ready_ids() == [c]
+    assert q.peek() == [c]
 
 
 def test_prune_second_call_throws():
@@ -101,7 +101,7 @@ def test_prune_second_call_throws():
     dag = b.build()
     q = DefaultKahnQueue(dag)
     assert q.prune(r) == [r]
-    assert q.ready_ids() == []
+    assert q.peek() == []
     # DefaultKahnQueue.prune is idempotent for already-pruned branches.
     assert q.prune(r) == []
 
@@ -119,5 +119,5 @@ def test_kahn_progression_pop_active_node_returns_promoted_dependents():
     assert q.pop(root) == [mid]
     assert q.pop(mid) == [leaf]
     assert q.pop(leaf) == []
-    assert q.ready_ids() == []
+    assert q.peek() == []
 

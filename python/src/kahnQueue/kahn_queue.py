@@ -13,6 +13,6 @@ class KahnQueue(Protocol):
         """Marks ``id`` and its descendants pruned; returns every affected node id."""
         ...
 
-    def ready_ids(self) -> Iterable[int]:
+    def peek(self) -> Iterable[int]:
         """Node ids currently runnable (not yet active)."""
         ...

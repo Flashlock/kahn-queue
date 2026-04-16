@@ -15,7 +15,7 @@
 |--------|------|
 | `Dag` / `Dag.Builder` | Immutable DAG: `Dag.builder()`, `add`, `connect`, `build()`. |
 | `KahnScheduler` | Drives execution: `run`, `signalComplete` / `signalFailed`; `getResult()` returns `DagResult` (sets of ids). |
-| `KahnQueue` | Single queue implementation backing the scheduler (see source for `pop` / `prune` / `readyIds`). |
+| `KahnQueue` | Single queue implementation backing the scheduler (see source for `pop` / `prune` / `peek`). |
 | `IllegalGraphException` | Thrown for invalid graphs (e.g. self-loop or cycle at `build()`). |
 | `NodeProgressTracker` | Optional per-node progress in `[0, 1]`; not required for scheduling. |
 
@@ -59,7 +59,7 @@ const dag = b.build();
 
 const q = new KahnQueue(dag);
 
-let ready = [...q.readyIds()];
+let ready = [...q.peek()];
 
 while (ready.length > 0) {
   const id = ready.shift()!;

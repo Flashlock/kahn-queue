@@ -91,7 +91,7 @@ dag = b.build()
 
 q = DefaultKahnQueue(dag)
 
-ready = list(q.ready_ids())
+ready = list(q.peek())
 
 while ready:
     id_ = ready.pop(0)

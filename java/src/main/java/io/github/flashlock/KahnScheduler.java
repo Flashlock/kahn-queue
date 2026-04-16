@@ -62,7 +62,7 @@ public class KahnScheduler<T> {
     if (isFinished()) {
       return;
     }
-    queue.readyIds().forEach(id -> executeNode.accept(id, this));
+    queue.peek().forEach(id -> executeNode.accept(id, this));
   }
 
   /** Completes a node and schedules newly ready nodes. Duplicate completion is ignored. */

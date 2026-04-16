@@ -10,8 +10,8 @@ type Queue interface {
 	Pop(id int) (newlyReady []int, err error)
 	// Prune marks id and its descendants pruned; returns affected ids (sorted ascending).
 	Prune(id int) (affected []int, err error)
-	// ReadyIDs returns node ids currently runnable (READY), sorted ascending.
-	ReadyIDs() []int
+	// Peek returns node ids currently runnable (READY), sorted ascending.
+	Peek() []int
 }
 
 // NewQueue builds a concurrent-safe [ConcurrentQueue] for d (recommended default).

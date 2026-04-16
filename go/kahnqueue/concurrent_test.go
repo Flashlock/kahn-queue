@@ -14,13 +14,13 @@ import (
 
 const concurrencyRounds = 25
 
-func TestConcurrent_basics_readyIdsAndPopValidation(t *testing.T) {
+func TestConcurrent_basics_peekAndPopValidation(t *testing.T) {
 	empty, err := dag.NewBuilder[string]().Build()
 	if err != nil {
 		t.Fatal(err)
 	}
 	q0 := NewConcurrent(empty)
-	if len(q0.ReadyIDs()) != 0 {
+	if len(q0.Peek()) != 0 {
 		t.Fatal("empty ready")
 	}
 	if _, err := q0.Pop(0); !errors.Is(err, dag.ErrInvalidNode) {
@@ -42,8 +42,8 @@ func TestConcurrent_basics_readyIdsAndPopValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	qc := NewConcurrent(dagChain)
-	if !slices.Equal(qc.ReadyIDs(), []int{root}) {
-		t.Fatalf("chain ready %v", qc.ReadyIDs())
+	if !slices.Equal(qc.Peek(), []int{root}) {
+		t.Fatalf("chain ready %v", qc.Peek())
 	}
 
 	join := dag.NewBuilder[string]()
@@ -61,8 +61,8 @@ func TestConcurrent_basics_readyIdsAndPopValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	qj := NewConcurrent(dagJoin)
-	if !slices.Equal(qj.ReadyIDs(), []int{a, c}) {
-		t.Fatalf("join ready %v", qj.ReadyIDs())
+	if !slices.Equal(qj.Peek(), []int{a, c}) {
+		t.Fatalf("join ready %v", qj.Peek())
 	}
 
 	one := dag.NewBuilder[string]()
@@ -72,7 +72,7 @@ func TestConcurrent_basics_readyIdsAndPopValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	q1 := NewConcurrent(dagOne)
-	if !slices.Equal(q1.ReadyIDs(), []int{only}) {
+	if !slices.Equal(q1.Peek(), []int{only}) {
 		t.Fatal()
 	}
 	_, err = q1.Pop(only)
@@ -162,12 +162,12 @@ func TestConcurrent_prune_updatesReadySet(t *testing.T) {
 	if _, err := q.Prune(a); err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(q.ReadyIDs(), []int{c}) {
-		t.Fatalf("%v", q.ReadyIDs())
+	if !slices.Equal(q.Peek(), []int{c}) {
+		t.Fatalf("%v", q.Peek())
 	}
 }
 
-func TestConcurrent_readyIds_stableUnderSequentialRepeats(t *testing.T) {
+func TestConcurrent_peek_stableUnderSequentialRepeats(t *testing.T) {
 	b := dag.NewBuilder[string]()
 	a := b.Add("a")
 	c := b.Add("c")
@@ -183,13 +183,13 @@ func TestConcurrent_readyIds_stableUnderSequentialRepeats(t *testing.T) {
 		t.Fatal(err)
 	}
 	q := NewConcurrent(d)
-	snapshot := q.ReadyIDs()
+	snapshot := q.Peek()
 	for i := 0; i < 10000; i++ {
-		if !slices.Equal(snapshot, q.ReadyIDs()) {
+		if !slices.Equal(snapshot, q.Peek()) {
 			t.Fatal("drift")
 		}
 	}
-	assertReadyIDsStructuralInvariant(t, d, q)
+	assertPeekStructuralInvariant(t, d, q)
 }
 
 func TestConcurrent_prune_secondCallThrows(t *testing.T) {
@@ -207,13 +207,13 @@ func TestConcurrent_prune_secondCallThrows(t *testing.T) {
 	if !slices.Equal(got, []int{r}) {
 		t.Fatal()
 	}
-	if len(q.ReadyIDs()) != 0 {
+	if len(q.Peek()) != 0 {
 		t.Fatal()
 	}
 	if _, err := q.Prune(r); err == nil {
 		t.Fatal("expected error")
 	}
-	assertReadyIDsStructuralInvariant(t, d, q)
+	assertPeekStructuralInvariant(t, d, q)
 }
 
 func TestConcurrent_kahnProgression(t *testing.T) {
@@ -256,13 +256,13 @@ func TestConcurrent_kahnProgression(t *testing.T) {
 	if len(got3) != 0 {
 		t.Fatalf("%v", got3)
 	}
-	if len(q.ReadyIDs()) != 0 {
+	if len(q.Peek()) != 0 {
 		t.Fatal()
 	}
-	assertReadyIDsStructuralInvariant(t, d, q)
+	assertPeekStructuralInvariant(t, d, q)
 }
 
-func TestConcurrent_readyIdsStress(t *testing.T) {
+func TestConcurrent_peekStress(t *testing.T) {
 	for range concurrencyRounds {
 		runConcurrentReadyIdsStressOnce(t)
 	}
@@ -321,10 +321,10 @@ func TestConcurrent_pruneMutation_visibleAfterDone(t *testing.T) {
 	if !slices.Equal(got, []int{left}) {
 		t.Fatalf("%v", got)
 	}
-	if !slices.Equal(q.ReadyIDs(), []int{right}) {
-		t.Fatalf("%v", q.ReadyIDs())
+	if !slices.Equal(q.Peek(), []int{right}) {
+		t.Fatalf("%v", q.Peek())
 	}
-	assertReadyIDsStructuralInvariant(t, d, q)
+	assertPeekStructuralInvariant(t, d, q)
 }
 
 func runConcurrentReadyIdsStressOnce(t *testing.T) {
@@ -341,7 +341,7 @@ func runConcurrentReadyIdsStressOnce(t *testing.T) {
 	}
 	q := NewConcurrent(d)
 	expected := []int{x}
-	if !slices.Equal(q.ReadyIDs(), expected) {
+	if !slices.Equal(q.Peek(), expected) {
 		t.Fatal()
 	}
 	const threads = 8
@@ -353,7 +353,7 @@ func runConcurrentReadyIdsStressOnce(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < iterationsPerThread; i++ {
-				if !slices.Equal(expected, q.ReadyIDs()) {
+				if !slices.Equal(expected, q.Peek()) {
 					atomic.StoreInt32(&drift, 1)
 					return
 				}
@@ -362,12 +362,12 @@ func runConcurrentReadyIdsStressOnce(t *testing.T) {
 	}
 	wg.Wait()
 	if atomic.LoadInt32(&drift) != 0 {
-		t.Fatal("readyIds drifted during concurrent read")
+		t.Fatal("peek drifted during concurrent read")
 	}
-	if !slices.Equal(expected, q.ReadyIDs()) {
+	if !slices.Equal(expected, q.Peek()) {
 		t.Fatal()
 	}
-	assertReadyIDsStructuralInvariant(t, d, q)
+	assertPeekStructuralInvariant(t, d, q)
 }
 
 func runConcurrentDisjointPruneOnce(t *testing.T) {
@@ -402,10 +402,10 @@ func runConcurrentDisjointPruneOnce(t *testing.T) {
 	if !slices.Equal(got1, []int{left}) || !slices.Equal(got2, []int{right}) {
 		t.Fatalf("%v %v", got1, got2)
 	}
-	if len(q.ReadyIDs()) != 0 {
+	if len(q.Peek()) != 0 {
 		t.Fatal()
 	}
-	assertReadyIDsStructuralInvariant(t, d, q)
+	assertPeekStructuralInvariant(t, d, q)
 }
 
 func runConcurrentPopFailuresOnce(t *testing.T) {
@@ -417,7 +417,7 @@ func runConcurrentPopFailuresOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	q := NewConcurrent(d)
-	before := q.ReadyIDs()
+	before := q.Peek()
 	const threads = 32
 	var wg sync.WaitGroup
 	var illegal int32
@@ -435,10 +435,10 @@ func runConcurrentPopFailuresOnce(t *testing.T) {
 	if int(atomic.LoadInt32(&illegal)) != threads {
 		t.Fatalf("illegal count %d", illegal)
 	}
-	if !slices.Equal(before, q.ReadyIDs()) {
+	if !slices.Equal(before, q.Peek()) {
 		t.Fatal("ready mutated")
 	}
-	assertReadyIDsStructuralInvariant(t, d, q)
+	assertPeekStructuralInvariant(t, d, q)
 }
 
 func runConcurrentSameIdPruneManyThreadsOnce(t *testing.T) {
@@ -476,10 +476,10 @@ func runConcurrentSameIdPruneManyThreadsOnce(t *testing.T) {
 	if illegalStates != threads-1 {
 		t.Fatalf("illegal %d", illegalStates)
 	}
-	if len(q.ReadyIDs()) != 0 {
+	if len(q.Peek()) != 0 {
 		t.Fatal()
 	}
-	assertReadyIDsStructuralInvariant(t, d, q)
+	assertPeekStructuralInvariant(t, d, q)
 }
 
 func runConcurrentOverlappingPruneOnce(t *testing.T) {
@@ -526,8 +526,8 @@ func runConcurrentOverlappingPruneOnce(t *testing.T) {
 	}()
 	close(start)
 	wg.Wait()
-	assertReadyIDsStructuralInvariant(t, d, q)
-	for _, id := range q.ReadyIDs() {
+	assertPeekStructuralInvariant(t, d, q)
+	for _, id := range q.Peek() {
 		if id != r && id != m && id != l {
 			t.Fatalf("bad ready id %d", id)
 		}
@@ -542,24 +542,24 @@ func runConcurrentOverlappingPruneOnce(t *testing.T) {
 		}
 	}
 	if s1 != nil && slices.Equal(s1, full) {
-		if len(q.ReadyIDs()) != 0 {
+		if len(q.Peek()) != 0 {
 			t.Fatal()
 		}
 	}
 	if s2 != nil && slices.Equal(s2, full) {
-		if len(q.ReadyIDs()) != 0 {
+		if len(q.Peek()) != 0 {
 			t.Fatal()
 		}
 	}
 	anyFull := (s1 != nil && slices.Equal(s1, full)) || (s2 != nil && slices.Equal(s2, full))
-	if anyFull && len(q.ReadyIDs()) != 0 {
+	if anyFull && len(q.Peek()) != 0 {
 		t.Fatal("full prune should clear ready")
 	}
 }
 
-func assertReadyIDsStructuralInvariant[T comparable](t *testing.T, d *dag.Dag[T], q *ConcurrentQueue[T]) {
+func assertPeekStructuralInvariant[T comparable](t *testing.T, d *dag.Dag[T], q *ConcurrentQueue[T]) {
 	t.Helper()
-	for _, id := range q.ReadyIDs() {
+	for _, id := range q.Peek() {
 		if err := dag.ValidateNode(id, d.Size()); err != nil {
 			t.Fatalf("invalid id %d: %v", id, err)
 		}

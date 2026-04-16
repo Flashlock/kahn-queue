@@ -53,7 +53,7 @@ export class KahnScheduler<T> {
   /** Invokes `executeNode` for each id the queue reports ready now; no-op if the run is already finished. */
   run(): void {
     if (this.isFinished()) return;
-    for (const id of this.#queue.readyIds()) {
+    for (const id of this.#queue.peek()) {
       this.#executeNode(id, this);
     }
   }

@@ -28,10 +28,10 @@ class ConcurrentKahnQueueTest {
   private static final int CONCURRENCY_ROUNDS = 25;
 
   @Test
-  void basics_readyIdsAndPopValidation() {
+  void basics_peekAndPopValidation() {
     Dag<String> empty = Dag.<String>builder().build();
     ConcurrentKahnQueue q0 = new ConcurrentKahnQueue(empty);
-    assertTrue(q0.readyIds().isEmpty());
+    assertTrue(q0.peek().isEmpty());
     assertThrows(IndexOutOfBoundsException.class, () -> q0.pop(0));
 
     Dag.Builder<String> chain = Dag.<String>builder();
@@ -41,7 +41,7 @@ class ConcurrentKahnQueueTest {
     chain.connect(root, mid).connect(mid, leaf);
     Dag<String> dagChain = chain.build();
     ConcurrentKahnQueue qc = new ConcurrentKahnQueue(dagChain);
-    assertEquals(Set.of(root), qc.readyIds());
+    assertEquals(Set.of(root), qc.peek());
 
     Dag.Builder<String> join = Dag.<String>builder();
     int a = join.add("a");
@@ -50,13 +50,13 @@ class ConcurrentKahnQueueTest {
     join.connect(a, jn).connect(c, jn);
     Dag<String> dagJoin = join.build();
     ConcurrentKahnQueue qj = new ConcurrentKahnQueue(dagJoin);
-    assertEquals(Set.of(a, c), qj.readyIds());
+    assertEquals(Set.of(a, c), qj.peek());
 
     Dag.Builder<String> one = Dag.<String>builder();
     int only = one.add("x");
     Dag<String> dagOne = one.build();
     ConcurrentKahnQueue q1 = new ConcurrentKahnQueue(dagOne);
-    assertEquals(Set.of(only), q1.readyIds());
+    assertEquals(Set.of(only), q1.peek());
     IllegalArgumentException ex =
         assertThrows(IllegalArgumentException.class, () -> q1.pop(only));
     assertTrue(ex.getMessage().contains("not active"), () -> "message: " + ex.getMessage());
@@ -96,13 +96,13 @@ class ConcurrentKahnQueueTest {
     b.connect(a, join).connect(c, join);
     Dag<String> dag = b.build();
     ConcurrentKahnQueue q = new ConcurrentKahnQueue(dag);
-    assertEquals(Set.of(a, c), q.readyIds());
+    assertEquals(Set.of(a, c), q.peek());
     q.prune(a);
-    assertEquals(Set.of(c), q.readyIds());
+    assertEquals(Set.of(c), q.peek());
   }
 
   @Test
-  void readyIds_stableUnderSequentialRepeats() {
+  void peek_stableUnderSequentialRepeats() {
     Dag.Builder<String> b = Dag.<String>builder();
     int a = b.add("a");
     int c = b.add("c");
@@ -110,11 +110,11 @@ class ConcurrentKahnQueueTest {
     b.connect(a, join).connect(c, join);
     Dag<String> dag = b.build();
     ConcurrentKahnQueue q = new ConcurrentKahnQueue(dag);
-    Set<Integer> snapshot = q.readyIds();
+    Set<Integer> snapshot = q.peek();
     for (int i = 0; i < 10_000; i++) {
-      assertEquals(snapshot, q.readyIds());
+      assertEquals(snapshot, q.peek());
     }
-    assertReadyIdsStructuralInvariant(dag, q);
+    assertPeekStructuralInvariant(dag, q);
   }
 
   @Test
@@ -124,9 +124,9 @@ class ConcurrentKahnQueueTest {
     Dag<String> dag = b.build();
     ConcurrentKahnQueue q = new ConcurrentKahnQueue(dag);
     assertEquals(Set.of(r), q.prune(r));
-    assertTrue(q.readyIds().isEmpty());
+    assertTrue(q.peek().isEmpty());
     assertThrows(IllegalStateException.class, () -> q.prune(r));
-    assertReadyIdsStructuralInvariant(dag, q);
+    assertPeekStructuralInvariant(dag, q);
   }
 
   @Test
@@ -142,14 +142,14 @@ class ConcurrentKahnQueueTest {
     assertEquals(Set.of(mid), q.pop(root));
     assertEquals(Set.of(leaf), q.pop(mid));
     assertEquals(Set.of(), q.pop(leaf));
-    assertTrue(q.readyIds().isEmpty());
-    assertReadyIdsStructuralInvariant(dag, q);
+    assertTrue(q.peek().isEmpty());
+    assertPeekStructuralInvariant(dag, q);
   }
 
   @Test
-  void concurrent_readyIdsStress_readsMatchSnapshot() throws Exception {
+  void concurrent_peekStress_readsMatchSnapshot() throws Exception {
     for (int round = 0; round < CONCURRENCY_ROUNDS; round++) {
-      runConcurrentReadyIdsStressOnce();
+      runConcurrentPeekStressOnce();
     }
   }
 
@@ -196,11 +196,11 @@ class ConcurrentKahnQueueTest {
       pool.shutdown();
       assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS));
     }
-    assertEquals(Set.of(right), q.readyIds());
-    assertReadyIdsStructuralInvariant(dag, q);
+    assertEquals(Set.of(right), q.peek());
+    assertPeekStructuralInvariant(dag, q);
   }
 
-  private static void runConcurrentReadyIdsStressOnce() throws Exception {
+  private static void runConcurrentPeekStressOnce() throws Exception {
     Dag.Builder<String> b = Dag.<String>builder();
     int x = b.add("x");
     int y = b.add("y");
@@ -208,7 +208,7 @@ class ConcurrentKahnQueueTest {
     Dag<String> dag = b.build();
     ConcurrentKahnQueue q = new ConcurrentKahnQueue(dag);
     Set<Integer> expected = Set.of(x);
-    assertEquals(expected, q.readyIds());
+    assertEquals(expected, q.peek());
     int threads = 8;
     int iterationsPerThread = 500;
     ExecutorService pool = Executors.newFixedThreadPool(threads);
@@ -219,8 +219,8 @@ class ConcurrentKahnQueueTest {
             pool.submit(
                 () -> {
                   for (int i = 0; i < iterationsPerThread; i++) {
-                    if (!expected.equals(q.readyIds())) {
-                      throw new AssertionError("readyIds drifted during concurrent read");
+                    if (!expected.equals(q.peek())) {
+                      throw new AssertionError("peek drifted during concurrent read");
                     }
                   }
                 }));
@@ -232,8 +232,8 @@ class ConcurrentKahnQueueTest {
       pool.shutdown();
       assertTrue(pool.awaitTermination(30, TimeUnit.SECONDS));
     }
-    assertEquals(expected, q.readyIds());
-    assertReadyIdsStructuralInvariant(dag, q);
+    assertEquals(expected, q.peek());
+    assertPeekStructuralInvariant(dag, q);
   }
 
   private static void runConcurrentDisjointPruneOnce() throws Exception {
@@ -252,8 +252,8 @@ class ConcurrentKahnQueueTest {
       pool.shutdown();
       assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS));
     }
-    assertTrue(q.readyIds().isEmpty());
-    assertReadyIdsStructuralInvariant(dag, q);
+    assertTrue(q.peek().isEmpty());
+    assertPeekStructuralInvariant(dag, q);
   }
 
   private static void runConcurrentPopFailuresOnce() throws Exception {
@@ -261,7 +261,7 @@ class ConcurrentKahnQueueTest {
     int only = b.add("x");
     Dag<String> dag = b.build();
     ConcurrentKahnQueue q = new ConcurrentKahnQueue(dag);
-    Set<Integer> before = q.readyIds();
+    Set<Integer> before = q.peek();
     int threads = 32;
     AtomicInteger illegalArgumentCount = new AtomicInteger();
     ExecutorService pool = Executors.newFixedThreadPool(threads);
@@ -286,8 +286,8 @@ class ConcurrentKahnQueueTest {
       assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS));
     }
     assertEquals(threads, illegalArgumentCount.get());
-    assertEquals(before, q.readyIds(), "pop failures must not mutate ready set");
-    assertReadyIdsStructuralInvariant(dag, q);
+    assertEquals(before, q.peek(), "pop failures must not mutate ready set");
+    assertPeekStructuralInvariant(dag, q);
   }
 
   private static void runConcurrentSameIdPruneManyThreadsOnce() throws Exception {
@@ -334,8 +334,8 @@ class ConcurrentKahnQueueTest {
       }
       assertEquals(1, successes);
       assertEquals(threads - 1, illegalStates);
-      assertTrue(q.readyIds().isEmpty());
-      assertReadyIdsStructuralInvariant(dag, q);
+      assertTrue(q.peek().isEmpty());
+      assertPeekStructuralInvariant(dag, q);
     } finally {
       pool.shutdown();
       assertTrue(pool.awaitTermination(30, TimeUnit.SECONDS));
@@ -368,8 +368,8 @@ class ConcurrentKahnQueueTest {
       start.countDown();
       Set<Integer> s1 = getPruneResultOrIllegalState(f1);
       Set<Integer> s2 = getPruneResultOrIllegalState(f2);
-      assertReadyIdsStructuralInvariant(dag, q);
-      for (int id : q.readyIds()) {
+      assertPeekStructuralInvariant(dag, q);
+      for (int id : q.peek()) {
         assertTrue(
             id == r || id == m || id == l,
             () -> "ready id must be a graph node: " + id);
@@ -383,15 +383,15 @@ class ConcurrentKahnQueueTest {
             "if both prunes return a set, together they must cover the three-node chain");
       }
       if (s1 != null && s1.equals(Set.of(r, m, l))) {
-        assertTrue(q.readyIds().isEmpty());
+        assertTrue(q.peek().isEmpty());
       }
       if (s2 != null && s2.equals(Set.of(r, m, l))) {
-        assertTrue(q.readyIds().isEmpty());
+        assertTrue(q.peek().isEmpty());
       }
       boolean anyFullPrune =
           s1 != null && s1.equals(Set.of(r, m, l)) || s2 != null && s2.equals(Set.of(r, m, l));
       if (anyFullPrune) {
-        assertTrue(q.readyIds().isEmpty(), "full prune must clear READY nodes");
+        assertTrue(q.peek().isEmpty(), "full prune must clear READY nodes");
       }
     } finally {
       pool.shutdown();
@@ -399,8 +399,8 @@ class ConcurrentKahnQueueTest {
     }
   }
 
-  private static void assertReadyIdsStructuralInvariant(Dag<?> dag, ConcurrentKahnQueue q) {
-    for (int id : q.readyIds()) {
+  private static void assertPeekStructuralInvariant(Dag<?> dag, ConcurrentKahnQueue q) {
+    for (int id : q.peek()) {
       Dag.validateNode(id, dag.size());
     }
   }

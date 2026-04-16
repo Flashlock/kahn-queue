@@ -10,7 +10,7 @@ from kahnQueue.kahn_queue import KahnQueue
 
 
 class ConcurrentKahnQueue(KahnQueue):
-    """``KahnQueue`` for concurrent ``pop`` and ``prune`` calls. ``ready_ids()`` may not
+    """``KahnQueue`` for concurrent ``pop`` and ``prune`` calls. ``peek()`` may not
     reflect a consistent snapshot if other threads update the queue at the same time; coordinate
     externally if you need strict ordering or visibility. For single-threaded use, prefer
     ``DefaultKahnQueue``.
@@ -68,7 +68,7 @@ class ConcurrentKahnQueue(KahnQueue):
             
         return sorted(affected)
 
-    def ready_ids(self) -> List[int]:
+    def peek(self) -> List[int]:
         # Deterministic ordering for sequential callers; may not reflect a consistent snapshot
         # under concurrent updates.
         return [m.id for m in self._node_machines if m.is_(NodeState.READY)]

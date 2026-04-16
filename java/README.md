@@ -121,7 +121,7 @@ Dag<String> dag = builder.build();
 
 var q = new DefaultKahnQueue(dag);
 
-var ready = new ArrayDeque<>(q.readyIds());
+var ready = new ArrayDeque<>(q.peek());
 
 while (!ready.isEmpty()) {
   int id = ready.removeFirst();

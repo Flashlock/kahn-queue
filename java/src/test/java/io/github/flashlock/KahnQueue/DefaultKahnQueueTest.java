@@ -13,15 +13,15 @@ import org.junit.jupiter.api.Test;
 class DefaultKahnQueueTest {
 
   @Test
-  void emptyDag_readyIdsEmpty_andPopRejectsInvalidId() {
+  void emptyDag_peekEmpty_andPopRejectsInvalidId() {
     Dag<String> dag = Dag.<String>builder().build();
     DefaultKahnQueue q = new DefaultKahnQueue(dag);
-    assertTrue(q.readyIds().isEmpty());
+    assertTrue(q.peek().isEmpty());
     assertThrows(IndexOutOfBoundsException.class, () -> q.pop(0));
   }
 
   @Test
-  void readyIds_containsOnlyZeroInDegreeNodes() {
+  void peek_containsOnlyZeroInDegreeNodes() {
     Dag.Builder<String> b = Dag.<String>builder();
     int root = b.add("root");
     int mid = b.add("mid");
@@ -29,11 +29,11 @@ class DefaultKahnQueueTest {
     b.connect(root, mid).connect(mid, leaf);
     Dag<String> dag = b.build();
     DefaultKahnQueue q = new DefaultKahnQueue(dag);
-    assertEquals(Set.of(root), q.readyIds());
+    assertEquals(Set.of(root), q.peek());
   }
 
   @Test
-  void readyIds_twoIndependentRoots() {
+  void peek_twoIndependentRoots() {
     Dag.Builder<String> b = Dag.<String>builder();
     int a = b.add("a");
     int c = b.add("c");
@@ -41,7 +41,7 @@ class DefaultKahnQueueTest {
     b.connect(a, join).connect(c, join);
     Dag<String> dag = b.build();
     DefaultKahnQueue q = new DefaultKahnQueue(dag);
-    assertEquals(Set.of(a, c), q.readyIds());
+    assertEquals(Set.of(a, c), q.peek());
   }
 
   @Test
@@ -50,7 +50,7 @@ class DefaultKahnQueueTest {
     int only = b.add("x");
     Dag<String> dag = b.build();
     DefaultKahnQueue q = new DefaultKahnQueue(dag);
-    assertEquals(Set.of(only), q.readyIds());
+    assertEquals(Set.of(only), q.peek());
     IllegalArgumentException ex =
         assertThrows(IllegalArgumentException.class, () -> q.pop(only));
     assertEquals("Pop failed. Node " + only + " is not active", ex.getMessage());
@@ -98,9 +98,9 @@ class DefaultKahnQueueTest {
     b.connect(a, join).connect(c, join);
     Dag<String> dag = b.build();
     DefaultKahnQueue q = new DefaultKahnQueue(dag);
-    assertEquals(Set.of(a, c), q.readyIds());
+    assertEquals(Set.of(a, c), q.peek());
     q.prune(a);
-    assertEquals(Set.of(c), q.readyIds());
+    assertEquals(Set.of(c), q.peek());
   }
 
   @Test
@@ -110,7 +110,7 @@ class DefaultKahnQueueTest {
     Dag<String> dag = b.build();
     DefaultKahnQueue q = new DefaultKahnQueue(dag);
     assertEquals(Set.of(r), q.prune(r));
-    assertTrue(q.readyIds().isEmpty());
+    assertTrue(q.peek().isEmpty());
     assertThrows(IllegalStateException.class, () -> q.prune(r));
   }
 
@@ -128,7 +128,7 @@ class DefaultKahnQueueTest {
     assertEquals(Set.of(mid), q.pop(root));
     assertEquals(Set.of(leaf), q.pop(mid));
     assertEquals(Set.of(), q.pop(leaf));
-    assertTrue(q.readyIds().isEmpty());
+    assertTrue(q.peek().isEmpty());
   }
 
   @SuppressWarnings("unchecked")

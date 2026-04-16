@@ -94,8 +94,8 @@ func (q *DefaultQueue[T]) Prune(id int) ([]int, error) {
 	return affected, nil
 }
 
-// ReadyIDs returns node ids currently runnable (READY), sorted ascending (index order).
-func (q *DefaultQueue[T]) ReadyIDs() []int {
+// Peek returns node ids currently runnable (READY), sorted ascending (index order).
+func (q *DefaultQueue[T]) Peek() []int {
 	n := q.dag.Size()
 	out := make([]int, 0)
 	for i := 0; i < n; i++ {

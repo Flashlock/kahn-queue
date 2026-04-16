@@ -6,7 +6,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * {@code KahnQueue} for concurrent {@code pop} and {@code prune} calls. {@code readyIds()} may not
+ * {@code KahnQueue} for concurrent {@code pop} and {@code prune} calls. {@code peek()} may not
  * reflect a consistent snapshot if other threads update the queue at the same time; coordinate
  * externally if you need strict ordering or visibility. For single-threaded use, prefer {@link
  * DefaultKahnQueue}.
@@ -83,7 +83,7 @@ public class ConcurrentKahnQueue implements KahnQueue {
   }
 
   @Override
-  public Set<Integer> readyIds() {
+  public Set<Integer> peek() {
     return Arrays.stream(nodeMachines)
         .filter(machine -> machine.is(NodeState.READY))
         .mapToInt(machine -> machine.id)

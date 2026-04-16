@@ -8,7 +8,7 @@ import (
 	"github.com/Flashlock/kahn-queue/go/dag"
 )
 
-// ConcurrentQueue supports concurrent Pop and Prune with per-node mutexes. ReadyIDs may not be a consistent snapshot.
+// ConcurrentQueue supports concurrent Pop and Prune with per-node mutexes. Peek may not be a consistent snapshot.
 type ConcurrentQueue[T comparable] struct {
 	dag      *dag.Dag[T]
 	machines []*NodeMachine
@@ -113,8 +113,8 @@ func (q *ConcurrentQueue[T]) Prune(id int) ([]int, error) {
 	return affected, nil
 }
 
-// ReadyIDs returns node ids currently in READY, sorted ascending (index order).
-func (q *ConcurrentQueue[T]) ReadyIDs() []int {
+// Peek returns node ids currently in READY, sorted ascending (index order).
+func (q *ConcurrentQueue[T]) Peek() []int {
 	n := q.dag.Size()
 	out := make([]int, 0)
 	for i := 0; i < n; i++ {

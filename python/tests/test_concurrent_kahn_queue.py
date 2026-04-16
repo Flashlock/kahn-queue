@@ -14,10 +14,10 @@ def _force_node_state(q: ConcurrentKahnQueue, id_: int, state: NodeState) -> Non
     q._node_machines[id_]._state = state  # mirrors Java tests using reflection
 
 
-def test_basics_ready_ids_and_pop_validation():
+def test_basics_peek_and_pop_validation():
     empty = Dag.builder().build()
     q0 = ConcurrentKahnQueue(empty)
-    assert q0.ready_ids() == []
+    assert q0.peek() == []
     with pytest.raises(IndexError):
         q0.pop(0)
 
@@ -28,7 +28,7 @@ def test_basics_ready_ids_and_pop_validation():
     chain.connect(root, mid).connect(mid, leaf)
     dag_chain = chain.build()
     qc = ConcurrentKahnQueue(dag_chain)
-    assert qc.ready_ids() == [root]
+    assert qc.peek() == [root]
 
     join = Dag.builder()
     a = join.add("a")
@@ -37,13 +37,13 @@ def test_basics_ready_ids_and_pop_validation():
     join.connect(a, jn).connect(c, jn)
     dag_join = join.build()
     qj = ConcurrentKahnQueue(dag_join)
-    assert qj.ready_ids() == [a, c]
+    assert qj.peek() == [a, c]
 
     one = Dag.builder()
     only = one.add("x")
     dag_one = one.build()
     q1 = ConcurrentKahnQueue(dag_one)
-    assert q1.ready_ids() == [only]
+    assert q1.peek() == [only]
     with pytest.raises(ValueError) as ex:
         q1.pop(only)
     assert "Pop failed. Node" in str(ex.value)
@@ -83,12 +83,12 @@ def test_prune_updates_ready_set():
     b.connect(a, join).connect(c, join)
     dag = b.build()
     q = ConcurrentKahnQueue(dag)
-    assert q.ready_ids() == [a, c]
+    assert q.peek() == [a, c]
     q.prune(a)
-    assert q.ready_ids() == [c]
+    assert q.peek() == [c]
 
 
-def test_ready_ids_stable_under_sequential_repeats():
+def test_peek_stable_under_sequential_repeats():
     b = Dag.builder()
     a = b.add("a")
     c = b.add("c")
@@ -96,10 +96,10 @@ def test_ready_ids_stable_under_sequential_repeats():
     b.connect(a, join).connect(c, join)
     dag = b.build()
     q = ConcurrentKahnQueue(dag)
-    snapshot = q.ready_ids()
+    snapshot = q.peek()
     for _ in range(10_000):
-        assert q.ready_ids() == snapshot
-    for id_ in q.ready_ids():
+        assert q.peek() == snapshot
+    for id_ in q.peek():
         Dag.validate_node(id_, dag.size())
 
 
@@ -109,10 +109,10 @@ def test_prune_second_call_throws():
     dag = b.build()
     q = ConcurrentKahnQueue(dag)
     assert q.prune(r) == [r]
-    assert q.ready_ids() == []
+    assert q.peek() == []
     # ConcurrentKahnQueue.prune is idempotent for already-pruned branches.
     assert q.prune(r) == []
-    for id_ in q.ready_ids():
+    for id_ in q.peek():
         Dag.validate_node(id_, dag.size())
 
 
@@ -128,12 +128,12 @@ def test_kahn_progression_pop_active_node_returns_promoted_dependents():
     assert q.pop(root) == [mid]
     assert q.pop(mid) == [leaf]
     assert q.pop(leaf) == []
-    assert q.ready_ids() == []
-    for id_ in q.ready_ids():
+    assert q.peek() == []
+    for id_ in q.peek():
         Dag.validate_node(id_, dag.size())
 
 
-def test_concurrent_ready_ids_stress_reads_match_snapshot():
+def test_concurrent_peek_stress_reads_match_snapshot():
     for _round in range(25):
         b = Dag.builder()
         x = b.add("x")
@@ -142,18 +142,18 @@ def test_concurrent_ready_ids_stress_reads_match_snapshot():
         dag = b.build()
         q = ConcurrentKahnQueue(dag)
         expected = [x]
-        assert q.ready_ids() == expected
+        assert q.peek() == expected
 
         def worker():
             for _i in range(500):
-                if q.ready_ids() != expected:
-                    raise AssertionError("ready_ids drifted during concurrent read")
+                if q.peek() != expected:
+                    raise AssertionError("peek drifted during concurrent read")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             futures = [pool.submit(worker) for _ in range(8)]
             for f in futures:
                 f.result()
-        assert q.ready_ids() == expected
+        assert q.peek() == expected
 
 
 def test_concurrent_disjoint_prune():
@@ -168,7 +168,7 @@ def test_concurrent_disjoint_prune():
             f2 = pool.submit(q.prune, right)
             assert f1.result() == [left]
             assert f2.result() == [right]
-        assert q.ready_ids() == []
+        assert q.peek() == []
 
 
 def test_concurrent_pop_failures_do_not_mutate_ready():
@@ -177,7 +177,7 @@ def test_concurrent_pop_failures_do_not_mutate_ready():
         only = b.add("x")
         dag = b.build()
         q = ConcurrentKahnQueue(dag)
-        before = q.ready_ids()
+        before = q.peek()
 
         def worker():
             try:
@@ -189,7 +189,7 @@ def test_concurrent_pop_failures_do_not_mutate_ready():
         with concurrent.futures.ThreadPoolExecutor(max_workers=32) as pool:
             results = list(pool.map(lambda _: worker(), range(32)))
         assert all(results)
-        assert q.ready_ids() == before
+        assert q.peek() == before
 
 
 def test_concurrent_same_id_prune_contention():
@@ -210,7 +210,7 @@ def test_concurrent_same_id_prune_contention():
             results = [f.result(timeout=30) for f in futures]
         assert results.count([root]) == 1
         assert results.count([]) == 7
-        assert q.ready_ids() == []
+        assert q.peek() == []
 
 
 def test_concurrent_overlapping_prune():
@@ -235,14 +235,14 @@ def test_concurrent_overlapping_prune():
             s1 = f1.result(timeout=30)
             s2 = f2.result(timeout=30)
 
-        for id_ in q.ready_ids():
+        for id_ in q.peek():
             assert 0 <= id_ < dag.size()
 
         assert set(s1) | set(s2) == {r, m, l}
 
         any_full = (set(s1) == {r, m, l}) or (set(s2) == {r, m, l})
         if any_full:
-            assert q.ready_ids() == []
+            assert q.peek() == []
 
 
 def test_prune_mutation_visible_to_other_thread_after_future_get():
@@ -254,7 +254,7 @@ def test_prune_mutation_visible_to_other_thread_after_future_get():
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
         done = pool.submit(q.prune, left)
         assert done.result(timeout=10) == [left]
-    assert q.ready_ids() == [right]
+    assert q.peek() == [right]
 
 
 def _get_prune_result_or_illegal_state(fut: "concurrent.futures.Future[set[int]]"):

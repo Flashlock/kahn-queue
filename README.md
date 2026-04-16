@@ -26,7 +26,7 @@ The goal of this project is to provide consistent multi-language support for a *
 
 ## ABI
 
-- **readyNodes()**: Get a collection of nodes which are ready to be ran.
+- **peek()**: Get a collection of nodes which are ready to be ran.
 - **pop(someNode)**: Pops a node from the ready nodes, returns a collection of newly ready nodes.
 - **prune(someNode)**: Removes a node and its subtree.
 

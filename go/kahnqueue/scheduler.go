@@ -59,7 +59,7 @@ func (s *Scheduler[T]) Run() {
 	if fin {
 		return
 	}
-	ids := s.queue.ReadyIDs()
+	ids := s.queue.Peek()
 	for _, id := range ids {
 		s.execute(id, s)
 	}

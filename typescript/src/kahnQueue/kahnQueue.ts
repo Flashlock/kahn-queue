@@ -8,7 +8,7 @@ import { NodeMachine } from "./nodeMachine.js";
  * @example
  * ```ts
  * const q = new KahnQueue(dag);
- * for (const id of q.readyIds()) {
+ * for (const id of q.peek()) {
  *   // ...
  * }
  *
@@ -80,7 +80,7 @@ export class KahnQueue {
   }
 
   /** Node ids currently runnable (zero unsatisfied predecessors, not pruned). */
-  readyIds(): ReadonlySet<number> {
+  peek(): ReadonlySet<number> {
     const ready = new Set<number>();
     for (const m of this.#nodeMachines) {
       if (m.is("READY")) ready.add(m.id);

@@ -76,7 +76,7 @@ public class DefaultKahnQueue implements KahnQueue {
   }
 
   @Override
-  public Set<Integer> readyIds() {
+  public Set<Integer> peek() {
     return Arrays.stream(nodeMachines)
         .filter(machine -> machine.is(NodeState.READY))
         .mapToInt(machine -> machine.id)

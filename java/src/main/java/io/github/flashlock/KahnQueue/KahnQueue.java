@@ -9,7 +9,7 @@ import java.util.Set;
  * <p>Example:
  * <pre>{@code
  * KahnQueue q;
- * q.readyIds().forEach(id -> { ... });
+ * q.peek().forEach(id -> { ... });
  *
  * Set<Integer> promotedIds = q.pop(doneId);
  * promotedIds.forEach(id -> { ... });
@@ -29,5 +29,5 @@ public interface KahnQueue {
   Set<Integer> prune(int id);
 
   /** Node ids currently runnable (zero unsatisfied predecessors, not pruned). */
-  Set<Integer> readyIds();
+  Set<Integer> peek();
 }

@@ -1,5 +1,6 @@
 # kahn-queue — polyglot monorepo
-# Expects a POSIX shell (Git Bash, WSL, Linux, macOS) for `cd … &&` and `source .venv/...`.
+# Expects a POSIX shell (Git Bash, WSL, Linux, macOS) for `cd … &&`.
+# Python targets use the venv interpreter directly (Windows: .venv/Scripts/python.exe, Unix: .venv/bin/python).
 
 GRADLE := cd java && ./gradlew
 GO := cd go &&
@@ -57,10 +58,24 @@ clean-go:
 # --- Python ------------------------------------------------------------------
 
 build-python:
-	$(PY) ( test -d .venv || python -m venv .venv ) && . .venv/bin/activate && python -m pip install -q -r requirements-dev.txt && python -m compileall -q src
+	$(PY) ( test -d .venv || python -m venv .venv ) && \
+	  if test -f .venv/Scripts/python.exe; then \
+	    .venv/Scripts/python.exe -m pip install -q -r requirements-dev.txt && \
+	    .venv/Scripts/python.exe -m compileall -q src; \
+	  else \
+	    .venv/bin/python -m pip install -q -r requirements-dev.txt && \
+	    .venv/bin/python -m compileall -q src; \
+	  fi
 
 test-python:
-	$(PY) ( test -d .venv || python -m venv .venv ) && . .venv/bin/activate && python -m pip install -q -r requirements-dev.txt && python -m pytest
+	$(PY) ( test -d .venv || python -m venv .venv ) && \
+	  if test -f .venv/Scripts/python.exe; then \
+	    .venv/Scripts/python.exe -m pip install -q -r requirements-dev.txt && \
+	    .venv/Scripts/python.exe -m pytest; \
+	  else \
+	    .venv/bin/python -m pip install -q -r requirements-dev.txt && \
+	    .venv/bin/python -m pytest; \
+	  fi
 
 clean-python:
 	$(PY) python -c "import pathlib, shutil; [shutil.rmtree(p) for p in pathlib.Path('.').rglob('__pycache__')]; shutil.rmtree('.pytest_cache', ignore_errors=True)"

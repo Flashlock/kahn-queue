@@ -70,7 +70,7 @@ if err != nil {
 
 q := kahnqueue.NewDefault(d)
 
-ready := append([]int(nil), q.ReadyIDs()...)
+ready := append([]int(nil), q.Peek()...)
 
 for len(ready) > 0 {
 	id := ready[0]

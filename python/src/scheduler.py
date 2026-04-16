@@ -43,7 +43,7 @@ class KahnScheduler(Generic[T]):
         """Invokes ``execute_node`` for each id the queue reports ready now."""
         if self.is_finished:
             return
-        for node_id in self._queue.ready_ids():
+        for node_id in self._queue.peek():
             self._execute_node(node_id, self)
 
     def signal_complete(self, node_id: int) -> None:

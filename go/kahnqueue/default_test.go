@@ -8,13 +8,13 @@ import (
 	"github.com/Flashlock/kahn-queue/go/dag"
 )
 
-func TestDefault_emptyDag_readyIdsEmpty_andPopRejectsInvalidId(t *testing.T) {
+func TestDefault_emptyDag_peekEmpty_andPopRejectsInvalidId(t *testing.T) {
 	d, err := dag.NewBuilder[string]().Build()
 	if err != nil {
 		t.Fatal(err)
 	}
 	q := NewDefault(d)
-	if len(q.ReadyIDs()) != 0 {
+	if len(q.Peek()) != 0 {
 		t.Fatal("ready")
 	}
 	if _, err := q.Pop(0); !errors.Is(err, dag.ErrInvalidNode) {
@@ -22,7 +22,7 @@ func TestDefault_emptyDag_readyIdsEmpty_andPopRejectsInvalidId(t *testing.T) {
 	}
 }
 
-func TestDefault_readyIds_containsOnlyZeroInDegreeNodes(t *testing.T) {
+func TestDefault_peek_containsOnlyZeroInDegreeNodes(t *testing.T) {
 	b := dag.NewBuilder[string]()
 	root := b.Add("root")
 	mid := b.Add("mid")
@@ -38,12 +38,12 @@ func TestDefault_readyIds_containsOnlyZeroInDegreeNodes(t *testing.T) {
 		t.Fatal(err)
 	}
 	q := NewDefault(d)
-	if !slices.Equal(q.ReadyIDs(), []int{root}) {
-		t.Fatalf("got %v", q.ReadyIDs())
+	if !slices.Equal(q.Peek(), []int{root}) {
+		t.Fatalf("got %v", q.Peek())
 	}
 }
 
-func TestDefault_readyIds_twoIndependentRoots(t *testing.T) {
+func TestDefault_peek_twoIndependentRoots(t *testing.T) {
 	b := dag.NewBuilder[string]()
 	a := b.Add("a")
 	c := b.Add("c")
@@ -59,8 +59,8 @@ func TestDefault_readyIds_twoIndependentRoots(t *testing.T) {
 		t.Fatal(err)
 	}
 	q := NewDefault(d)
-	if !slices.Equal(q.ReadyIDs(), []int{a, c}) {
-		t.Fatalf("got %v", q.ReadyIDs())
+	if !slices.Equal(q.Peek(), []int{a, c}) {
+		t.Fatalf("got %v", q.Peek())
 	}
 }
 
@@ -72,7 +72,7 @@ func TestDefault_pop_throwsWhenNodeIsReadyNotActive(t *testing.T) {
 		t.Fatal(err)
 	}
 	q := NewDefault(d)
-	if !slices.Equal(q.ReadyIDs(), []int{only}) {
+	if !slices.Equal(q.Peek(), []int{only}) {
 		t.Fatal()
 	}
 	_, err = q.Pop(only)
@@ -169,8 +169,8 @@ func TestDefault_prune_removesIdsFromReadySet(t *testing.T) {
 	if _, err := q.Prune(a); err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(q.ReadyIDs(), []int{c}) {
-		t.Fatalf("got %v", q.ReadyIDs())
+	if !slices.Equal(q.Peek(), []int{c}) {
+		t.Fatalf("got %v", q.Peek())
 	}
 }
 
@@ -189,7 +189,7 @@ func TestDefault_prune_secondCallThrows(t *testing.T) {
 	if !slices.Equal(got, []int{r}) {
 		t.Fatal()
 	}
-	if len(q.ReadyIDs()) != 0 {
+	if len(q.Peek()) != 0 {
 		t.Fatal("ready")
 	}
 	if _, err := q.Prune(r); err == nil {
@@ -237,7 +237,7 @@ func TestDefault_kahnProgression_popActiveNode_returnsPromotedDependents(t *test
 	if len(got3) != 0 {
 		t.Fatalf("got %v", got3)
 	}
-	if len(q.ReadyIDs()) != 0 {
-		t.Fatalf("ready %v", q.ReadyIDs())
+	if len(q.Peek()) != 0 {
+		t.Fatalf("ready %v", q.Peek())
 	}
 }

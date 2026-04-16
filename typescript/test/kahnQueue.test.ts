@@ -3,14 +3,14 @@ import { describe, expect, test } from "vitest";
 import { Dag, KahnQueue } from "../src";
 
 describe("KahnQueue", () => {
-  test("emptyDag_readyIdsEmpty_andPopRejectsInvalidId", () => {
+  test("emptyDag_peekEmpty_andPopRejectsInvalidId", () => {
     const dag = Dag.builder<string>().build();
     const q = new KahnQueue(dag);
-    expect(q.readyIds().size).toBe(0);
+    expect(q.peek().size).toBe(0);
     expect(() => q.pop(0)).toThrow(RangeError);
   });
 
-  test("readyIds_containsOnlyZeroInDegreeNodes", () => {
+  test("peek_containsOnlyZeroInDegreeNodes", () => {
     const b = Dag.builder<string>();
     const root = b.add("root");
     const mid = b.add("mid");
@@ -18,10 +18,10 @@ describe("KahnQueue", () => {
     b.connect(root, mid).connect(mid, leaf);
     const dag = b.build();
     const q = new KahnQueue(dag);
-    expect(q.readyIds()).toEqual(new Set([root]));
+    expect(q.peek()).toEqual(new Set([root]));
   });
 
-  test("readyIds_twoIndependentRoots", () => {
+  test("peek_twoIndependentRoots", () => {
     const b = Dag.builder<string>();
     const a = b.add("a");
     const c = b.add("c");
@@ -29,7 +29,7 @@ describe("KahnQueue", () => {
     b.connect(a, join).connect(c, join);
     const dag = b.build();
     const q = new KahnQueue(dag);
-    expect(q.readyIds()).toEqual(new Set([a, c]));
+    expect(q.peek()).toEqual(new Set([a, c]));
   });
 
   test("pop_throwsWhenNodeIsReadyNotActive", () => {
@@ -37,7 +37,7 @@ describe("KahnQueue", () => {
     const only = b.add("x");
     const dag = b.build();
     const q = new KahnQueue(dag);
-    expect(q.readyIds()).toEqual(new Set([only]));
+    expect(q.peek()).toEqual(new Set([only]));
     expect(() => q.pop(only)).toThrowError(`Pop failed. Node ${only} is not active`);
   });
 
@@ -79,9 +79,9 @@ describe("KahnQueue", () => {
     b.connect(a, join).connect(c, join);
     const dag = b.build();
     const q = new KahnQueue(dag);
-    expect(q.readyIds()).toEqual(new Set([a, c]));
+    expect(q.peek()).toEqual(new Set([a, c]));
     q.prune(a);
-    expect(q.readyIds()).toEqual(new Set([c]));
+    expect(q.peek()).toEqual(new Set([c]));
   });
 
   test("prune_secondCallThrows", () => {
@@ -90,7 +90,7 @@ describe("KahnQueue", () => {
     const dag = b.build();
     const q = new KahnQueue(dag);
     expect(q.prune(r)).toEqual(new Set([r]));
-    expect(q.readyIds().size).toBe(0);
+    expect(q.peek().size).toBe(0);
     expect(() => q.prune(r)).toThrow();
   });
 });

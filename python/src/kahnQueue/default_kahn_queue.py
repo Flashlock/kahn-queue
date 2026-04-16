@@ -55,6 +55,6 @@ class DefaultKahnQueue(KahnQueue):
             
         return sorted(affected)
 
-    def ready_ids(self) -> List[int]:
+    def peek(self) -> List[int]:
         # Deterministic: ids are scanned in ascending order.
         return [m.id for m in self._node_machines if m.is_(NodeState.READY)]
